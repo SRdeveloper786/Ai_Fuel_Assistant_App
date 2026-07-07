@@ -1,0 +1,6 @@
+{
+  "name": "AI Fuel Assistant",
+  "description": "Smart multilingual fuel optimizer, voice tracker, and vehicle expense records keeper. Integrated with server-side Gemini AI.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
