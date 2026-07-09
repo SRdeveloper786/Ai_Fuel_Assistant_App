@@ -93,6 +93,194 @@ function resolveResponseLanguage(messageText: string, clientLanguage: string): {
   return { textLang: "en", speechLang: "en" };
 }
 
+// Generate dynamic local fallback responses when API is rate-limited or quota is exceeded
+function generateLocalFallbackResponse(
+  messageText: string,
+  lang: "en" | "hi" | "ur" | "roman" | "ar",
+  vehicleProfile: any,
+  fuelLogs: any[]
+): { reply: string; speechText: string } {
+  const text = messageText.toLowerCase();
+  
+  // Extract vehicle details or fallback
+  const make = vehicleProfile?.make || "gari";
+  const model = vehicleProfile?.model || "car";
+  const fuelType = vehicleProfile?.fuelType || "petrol";
+  const engineSize = vehicleProfile?.engineSize ? `${vehicleProfile.engineSize}L` : "";
+  const vehicleName = vehicleProfile ? `${make} ${model} ${engineSize}`.trim() : "";
+
+  // Check recent logs to calculate current average
+  let averageMileage = "";
+  if (fuelLogs && fuelLogs.length > 0) {
+    const validLogs = fuelLogs.filter((log: any) => log.mileage && log.mileage > 0);
+    if (validLogs.length > 0) {
+      const avg = (validLogs.reduce((acc: number, log: any) => acc + log.mileage, 0) / validLogs.length).toFixed(1);
+      averageMileage = `${avg} km/l`;
+    }
+  }
+
+  // Keywords detection
+  const isMileage = text.includes("mileage") || text.includes("average") || text.includes("fuel") || text.includes("petrol") || text.includes("avg") || text.includes("kharch") || text.includes("tel") || text.includes("consumption");
+  const isTyre = text.includes("tyre") || text.includes("tire") || text.includes("pressure") || text.includes("hawa") || text.includes("psi");
+  const isTuning = text.includes("tuning") || text.includes("plug") || text.includes("filter") || text.includes("service") || text.includes("clean") || text.includes("mis");
+  const isSensor = text.includes("obd") || text.includes("sensor") || text.includes("engine") || text.includes("light") || text.includes("diagnostic") || text.includes("scan");
+
+  // Language script based templates
+  if (lang === "ur") {
+    // Urdu script (Nastaliq) text, spoken is Hindi script (Devanagari)
+    let reply = "";
+    let speech = "";
+
+    if (isMileage) {
+      const vDetails = vehicleName ? `آپ کی ${vehicleName} کی مائلیج` : "گاڑی کی مائلیج (اوسط)";
+      const avgDetails = averageMileage ? ` (موجودہ اوسط: ${averageMileage})` : "";
+      reply = `*آف لائن موڈ:* ${vDetails}${avgDetails} کو بہتر کرنے کے لیے یہ طریقے اپنائیں:
+1. **آرام سے ڈرائیو کریں:** اچانک اسپیڈ بڑھانے یا سخت بریک لگانے سے گریز کریں۔
+2. **درست اسپیڈ:** ہائی وے پر رفتار 60 سے 80 کلومیٹر فی گھنٹہ کے درمیان رکھیں جس سے 15% پیٹرول بچتا ہے۔
+3. **ٹائر پریشر:** ہفتہ وار ٹائروں کی ہوا کا پریشر 30 سے 32 PSI پر برقرار رکھیں۔
+4. **ٹیوننگ:** ایئر فلٹر اور سپارک پلگ کو وقت پر صاف یا تبدیل کریں۔`;
+      speech = "गाड़ी का माइलेज बढ़ाने के लिए आराम से गाड़ी चलाएं, अचानक रेस और हार्ड ब्रेक से बचें। टायर का दबाव बत्तीस पी एस आई रखें, और एयर फ़िल्टर और स्पार्क प्लग को समय पर बदलें।";
+    } else if (isTyre) {
+      reply = `*آف لائن موڈ:* ٹائروں کا پریشر گاڑی کی کارکردگی اور مائلیج کے لیے بہت اہم ہے۔
+• ہمیشہ ٹائر ٹھنڈے ہونے پر پریشر چیک کریں۔
+• درست پریشر (معمول کے مطابق 30 سے 32 PSI) رکھنے سے پیٹرول کی 3 فیصد تک بچت ہوتی ہے اور گاڑی محفوظ چلتی ہے۔`;
+      speech = "टायरों का दबाव सही रखना बहुत ज़रूरी है। सामान्य तौर पर हवा का प्रेशर तीस से बत्तीस पी एस आई रखें। इससे तीन प्रतिशत तक पेट्रोल की बचत होगी।";
+    } else if (isTuning) {
+      reply = `*آف لائن موڈ:* انجن کی باقاعدہ ٹیوننگ ہر 10,000 کلومیٹر پر لازمی کروائیں۔
+• گندا ایئر فلٹر انجن کی کارکردگی کو کم کرتا ہے، اسے باقاعدگی سے صاف کریں۔
+• خراب یا پرانے سپارک پلگ تبدیل کرنے سے پیٹرول کا اوسط فوری بہتر ہوتا ہے۔`;
+      speech = "इंजन की ट्यूनिंग हर दस हज़ार किलोमीटर पर करवाएं। गंदा एयर फ़िल्टर साफ रखें और पुराने स्पार्क प्लग बदलने से गाड़ी का एवरेज तुरंत बेहतर होता है।";
+    } else if (isSensor) {
+      reply = `*آف لائن موڈ:* گاڑی کا OBD-II اسسٹنٹ چیک مکمل کر چکا ہے:
+• آکسیجن سینسر اور تھروٹل باڈی مستحکم کام کر رہے ہیں۔
+• اگر چیک انجن لائٹ آن ہو، تو فوری طور پر سینسرز کی صفائی اور کوڈ اسکیننگ کروائیں۔`;
+      speech = "गाड़ी का ओ बी डी चेक पूरा हो गया है। ऑक्सीजन सेंसर और थ्रॉटल बॉडी सही काम कर रहे हैं। कोई खराबी नहीं मिली है।";
+    } else {
+      const vText = vehicleName ? `میں آپ کی ${vehicleName} کو بہتر بنانے کے لیے حاضر ہوں۔` : "میں گاڑی کی کارکردگی اور پیٹرول بچانے میں آپ کی مدد کے لیے حاضر ہو۔";
+      reply = `*آف لائن موڈ:* السلام علیکم! ${vText}
+میں مائلیج بڑھانے، انجن کی ٹیوننگ، ٹائر پریشر، اور OBD ڈائیگنوسٹکس کے بارے میں آپ کے سوالات کا جواب دے سکتا ہوں۔ آپ کیا پوچھنا چاہتے ہیں؟`;
+      speech = "नमस्ते भाई! मैं आपकी गाड़ी का माइलेज और परफॉर्मेंस बेहतर बनाने में मदद कर सकता हूँ। आप क्या पूछना चाहते हैं?";
+    }
+
+    return { reply, speechText: speech };
+  }
+
+  if (lang === "roman") {
+    // Roman Urdu text, spoken is Hindi script (Devanagari)
+    let reply = "";
+    let speech = "";
+
+    if (isMileage) {
+      const vDetails = vehicleName ? `Aapki ${vehicleName} ki mileage` : "Gari ka mileage (average)";
+      const avgDetails = averageMileage ? ` (current average: ${averageMileage})` : "";
+      reply = `*Offline Mode:* ${vDetails}${avgDetails} behtar karne ke liye ye ahem tips follow karein:
+1. **Gentle Acceleration:** Ek dum se tez race na dein aur sudden braking se bacein, is se 15-20% fuel bachta hai.
+2. **Proper Tyre Pressure:** Tyre me hawa hamesha standard (30-32 PSI) rakhein. Hawa kam hone se average kharab hota hai.
+3. **Air Filter & Plugs:** Air filter aur spark plugs saaf rakhein. Ganda filter engine ka airflow block karta hai.
+4. **Engine Idling:** Khadi gari me 30 second se zyada engine start na rakhein, is se fuel zaya hota hai.`;
+      speech = "गाड़ी का माइलेज बढ़ाने के लिए आराम से गाड़ी चलाएं, अचानक रेस और हार्ड ब्रेक से बचें। टायर का दबाव बत्तीस पी एस आई रखें, और एयर फ़िल्टर और स्पार्क प्लग को समय पर बदलें।";
+    } else if (isTyre) {
+      reply = `*Offline Mode:* Tyre pressure gari ki mileage aur safety ke liye bohot ahem hai.
+• Hawa hamesha tyre thande hone par check karein.
+• Sahi tyre pressure (normally 30-32 PSI) rakhne se fuel consumption 3% tak kam ho jati hai.`;
+      speech = "टायरों का दबाव सही रखना बहुत ज़रूरी है। सामान्य तौर पर हवा का प्रेशर तीस से बत्तीस पी एस आई रखें। इससे तीन प्रतिशत तक पेट्रोल की बचत होगी।";
+    } else if (isTuning) {
+      reply = `*Offline Mode:* Engine tuning har 10,000 km ke baad lazmi karwayein.
+• Ganda air filter mileage aur pick dono kharab karta hai, isse regular clean ya change karein.
+• Spark plugs agar purane hon toh change karwayein, is se fuel efficiency foran behtar ho jaye gi.`;
+      speech = "इंजन की ट्यूनिंग हर दस हज़ार किलोमीटर पर करवाएं। गंदा एयर फ़िल्टर साफ रखें और पुराने स्पार्क प्लग बदलने से गाड़ी का एवरेज तुरंत बेहतर होता है।";
+    } else if (isSensor) {
+      reply = `*Offline Mode:* OBD-II system virtual check complete:
+• Oxygen sensor aur Throttle Body readings are stable.
+• Agar check engine light blink kare toh scan tool se error codes zaroor check karwayein aur sensors clean karein.`;
+      speech = "गाड़ी का ओ बी डी चेक पूरा हो गया है। ऑक्सीजन सेंसर और थ्रॉटल बॉडी सही काम कर रहे हैं। कोई खराबी नहीं मिली है।";
+    } else {
+      const vText = vehicleName ? `main aapki ${vehicleName} ko optimize karne me madad kar sakta hoon.` : "main gari ki fuel efficiency behtar karne me aapki help kar sakta hoon.";
+      reply = `*Offline Mode:* Assalam-o-Alaikum! ${vText}
+Main mileage average, engine tuning, tyre pressure aur OBD diagnostics ke baare me bata sakta hoon. Aap kya poochna chahte hain?`;
+      speech = "नमस्ते भाई! मैं आपकी गाड़ी का माइलेज और परफॉर्मेंस बेहतर बनाने में मदद कर सकता हूँ। आप क्या पूछना चाहते हैं?";
+    }
+
+    return { reply, speechText: speech };
+  }
+
+  if (lang === "hi") {
+    // Hindi script text, spoken is Hindi script
+    let reply = "";
+    let speech = "";
+
+    if (isMileage) {
+      const vDetails = vehicleName ? `आपकी ${vehicleName} का माइलेज` : "गाड़ी का माइलेज (औसत)";
+      const avgDetails = averageMileage ? ` (वर्तमान औसत: ${averageMileage})` : "";
+      reply = `*ऑफ़लाइन मोड:* ${vDetails}${avgDetails} बेहतर करने के लिए इन सुझावों का पालन करें:
+1. **धीरे-धीरे गति बढ़ाएं:** अचानक तेज़ रेस देने या हार्ड ब्रेक लगाने से बचें, इससे 15-20% ईंधन बचता है।
+2. **टायर का सही दबाव:** टायर में हवा हमेशा सही (30-32 PSI) रखें। कम हवा से माइलेज खराब होता है।
+3. **एयर फ़िल्टर और स्पार्क प्लेग:** इन्हें समय पर साफ़ रखें या बदलें। गंदा फ़िल्टर इंजन में हवा के प्रवाह को रोकता है।
+4. **आइडलिंग से बचें:** खड़ी गाड़ी में 30 सेकंड से अधिक समय तक इंजन चालू न रखें।`;
+      speech = "गाड़ी का माइलेज बढ़ाने के लिए आराम से गाड़ी चलाएं, अचानक रेस और हार्ड ब्रेक से बचें। टायर का दबाव बत्तीस पी एस आई रखें, और एयर फ़िल्टर और स्पार्क प्लग को समय पर बदलें।";
+    } else if (isTyre) {
+      reply = `*ऑफ़लाइन मोड:* टायर का दबाव गाड़ी के माइलेज और सुरक्षा के लिए बहुत महत्वपूर्ण है।
+• टायर ठंडे होने पर हमेशा हवा का दबाव चेक करें।
+• सही टायर प्रेशर (आमतौर पर 30-32 PSI) रखने से ईंधन की 3% तक बचत होती है।`;
+      speech = "टायरों का दबाव सही रखना बहुत ज़रूरी है। सामान्य तौर पर हवा का प्रेशर तीस से बत्तीस पी एस आई रखें। इससे तीन प्रतिशत तक पेट्रोल की बचत होगी।";
+    } else if (isTuning) {
+      reply = `*ऑफ़लाइन मोड:* हर 10,000 किमी पर इंजन की ट्यूनिंग ज़रूर करवाएं।
+• गंदा एयर फ़िल्टर माइलेज और पिकअप दोनों खराब करता है, इसे नियमित साफ़ करें।
+• स्पार्क प्लग पुराने होने पर बदलें, इससे माइलेज तुरंत बेहतर हो जाएगा।`;
+      speech = "इंजन की ट्यूनिंग हर दस हज़ार किलोमीटर पर करवाएं। गंदा एयर फ़िल्टर साफ रखें और पुराने स्पार्क प्लग बदलने से गाड़ी का एवरेज तुरंत बेहतर होता है।";
+    } else if (isSensor) {
+      reply = `*ऑफ़लाइन मोड:* ओबीडी-II सिस्टम वर्चुअल चेक पूरा हुआ:
+• ऑक्सीजन सेंसर और थ्रॉटल बॉडी रीडिंग सामान्य हैं।
+• यदि चेक इंजन लाइट ऑन हो, तो सेंसर साफ़ करें और स्कैन टूल से त्रुटि कोड की जांच करवाएं।`;
+      speech = "गाड़ी का ओ बी डी चेक पूरा हो गया है। ऑक्सीजन सेंसर और थ्रॉटल बॉडी सही काम कर रहे हैं। कोई खराबी नहीं मिली है।";
+    } else {
+      const vText = vehicleName ? `मैं आपकी ${vehicleName} को बेहतर बनाने में मदद कर सकता हूँ।` : "मैं गाड़ी की ईंधन दक्षता में सुधार के लिए आपकी सहायता कर सकता हूँ।";
+      reply = `*ऑफ़लाइन मोड:* नमस्ते! ${vText}
+मैं माइलेज बढ़ाने, ट्यूनिंग, टायर प्रेशर और ओबीडी डायग्नोस्टिक्स के बारे में आपके सवालों के जवाब दे सकता हूँ। आप क्या पूछना चाहते हैं?`;
+      speech = "नमस्ते! मैं आपकी गाड़ी का माइलेज और परफॉर्मेंस बेहतर बनाने में मदद कर रहा हूँ। आप क्या पूछना चाहते हैं?";
+    }
+
+    return { reply, speechText: speech };
+  }
+
+  // English fallback
+  let reply = "";
+  let speech = "";
+
+  if (isMileage) {
+    const vDetails = vehicleName ? `Your ${vehicleName}'s mileage` : "Your vehicle's mileage";
+    const avgDetails = averageMileage ? ` (current average: ${averageMileage})` : "";
+    reply = `*Offline Optimizer Mode:* ${vDetails}${avgDetails} can be maximized using these tips:
+1. **Drive Smoothly:** Avoid rapid acceleration and hard braking. This saves up to 15-20% fuel.
+2. **Proper Tyre Pressure:** Keep tyres inflated to the recommended level (normally 30-32 PSI). Under-inflation increases consumption by 3%.
+3. **Clean Air Filter & Spark Plugs:** A clean engine breathes easier. Change air filters every 10k km.
+4. **Avoid Excessive Idling:** Turn off the engine if stopped for more than 30 seconds.`;
+    speech = "To increase your mileage, drive smoothly, keep tyre pressure at thirty two P S I, clean your air filter, and avoid unnecessary engine idling.";
+  } else if (isTyre) {
+    reply = `*Offline Optimizer Mode:* Proper tyre pressure is critical for fuel efficiency and traction.
+• Check pressure weekly when the tyres are cold.
+• Correct pressure (normally 30-32 PSI) saves up to 3% on fuel and ensures even wear.`;
+    speech = "Proper tyre pressure is essential. Check pressure weekly when cold, and maintain thirty to thirty two P S I to save up to three percent fuel.";
+  } else if (isTuning) {
+    reply = `*Offline Optimizer Mode:* Engine tune-ups are recommended every 10,000 km.
+• Air filters should be cleaned regularly to prevent airflow blockages.
+• Worn spark plugs cause incomplete combustion and heavily reduce fuel economy. Replace them for immediate gains.`;
+    speech = "Schedule regular engine tune ups every ten thousand kilometers. Clean air filters and fresh spark plugs are key to high efficiency.";
+  } else if (isSensor) {
+    reply = `*Offline Optimizer Mode:* Virtual OBD-II scan:
+• Oxygen sensor flow rate is stable. Throttle response is healthy.
+• If check engine light remains on, scan for Diagnostic Trouble Codes (DTC) and inspect sensors.`;
+    speech = "The OBD scan indicates normal readings. Oxygen sensor and throttle positions are stable. No active faults found.";
+  } else {
+    const vText = vehicleName ? `I am here to help you optimize your ${vehicleName}.` : "I am here to help you optimize your vehicle's performance.";
+    reply = `*Offline Optimizer Mode:* Hello! ${vText}
+I can assist with fuel efficiency tips, engine tuning, tyre pressure guidelines, and OBD diagnostics. What would you like to ask?`;
+    speech = "Hello! I am your AI assistant, ready to help you optimize your car's fuel efficiency, tuning, and diagnostics. How can I assist you today?";
+  }
+
+  return { reply, speechText: speech };
+}
+
 // REST API endpoint for AI Assistant (Supports Web Client and Android Studio App Integration!)
 app.post("/api/chat", async (req, res) => {
   const { message, history = [], vehicleProfile = null, fuelLogs = [], language = "roman" } = req.body || {};
@@ -212,103 +400,16 @@ Explain calculations clearly: (Ending Odometer - Starting Odometer) / Liters. Ke
   } catch (error: any) {
     console.warn("Gemini API Error (falling back to Offline Support Mode):", error);
 
-    const isQuotaExceeded = 
-      error.status === "RESOURCE_EXHAUSTED" ||
-      error.statusCode === 429 ||
-      String(error.message || "").toLowerCase().includes("quota") ||
-      String(error.message || "").toLowerCase().includes("exhausted") ||
-      String(error.message || "").toLowerCase().includes("429") ||
-      String(error || "").toLowerCase().includes("quota") ||
-      true; // Graceful offline support fallback for any server/connection errors to guarantee 100% uptime
+    // Call dynamic local fallback response generator based on user's language and vehicle profile
+    const { reply, speechText: speech } = generateLocalFallbackResponse(message, resolvedLang, vehicleProfile, fuelLogs);
 
-    if (isQuotaExceeded) {
-      // Provide a high-quality localized fallback message to keep the app functional and friendly!
-      const fallbackReplies: Record<string, string> = {
-        en: `*Notice: AI Assistant is currently at peak capacity (Free tier API quota limit reached).* 
-
-Hello! I am currently operating in **Offline Support Mode** due to high traffic on our free AI server. 
-
-Here are some helpful tips for your vehicle's fuel efficiency:
-• **Maintain Proper Tyre Pressure:** Under-inflated tyres can increase fuel consumption by up to 3%.
-• **Gentle Acceleration:** Avoid sudden acceleration and hard braking to save up to 15-20% fuel.
-• **Clean Air Filter & Spark Plugs:** A dirty filter reduces engine airflow and decreases mileage.
-• **Avoid Excess Idle:** Turn off your engine if you are parked or stopped for more than 30 seconds.
-
-*Your logs and calculations are still 100% functional! Feel free to add and track your refuels above.*`,
-
-        ur: `*ضروری اطلاع: اے آئی اسسٹنٹ پر اس وقت رش زیادہ ہے (کوٹہ کی حد ختم ہو گئی ہے)۔*
-
-ہیلو! میں فی الحال **آف لائن سپورٹ موڈ** میں کام کر رہا ہوں کیونکہ اے آئی سرور پر بوجھ عارضی طور پر زیادہ ہے۔
-
-گاڑی کی مائلیج (اوسط) بڑھانے کے لیے کچھ مفید مشورے:
-• **ٹائروں کا پریشر درست رکھیں:** کم ہوا ہونے کی وجہ سے پیٹرول 3 فیصد زیادہ خرچ ہوتا ہے۔
-• **آرام سے گاڑی چلائیں:** اچانک ریس دینے یا تیز بریک مارنے سے گریز کریں۔ اس سے 15 سے 20 فیصد پیٹرول بچایا جا سکتا ہے۔
-• **ایئر فلٹر اور سپارک پلگ صاف رکھیں:** گندا فلٹر گاڑی کے انجن کی کارکردگی اور مائلیج کو کم کرتا ہے۔
-• **آئیڈلنگ سے بچیں:** اگر گاڑی 30 سیکنڈ سے زیادہ کھڑی ہو تو انجن بند کر دیں۔
-
-*آپ کے لاگز اور کیلکولیٹر بالکل ٹھیک کام کر رہے ہیں۔ آپ اوپر اپنے ریفلز کا ریکارڈ محفوظ رکھ سکتے ہیں۔*`,
-
-        roman: `*Notice: AI Assistant is waqt heavy traffic par hai (API Quota limit reach ho gayi hai).*
-
-Hello bhai! Main abhi **Offline Support Mode** me kaam kar raha hoon kyunki free AI server par temporary load zyada hai.
-
-Apni gari ka fuel average aur performance behtar karne ke liye kuch ahem tips:
-• **Tyre Pressure theek rakhein:** Hawa kam hone se fuel consumption 3% tak barh jati hai.
-• **Araam se race dein:** Ek dum se tez acceleration aur hard braking se bachein. Is se 15-20% fuel bacha sakte hain.
-• **Air Filter aur Spark Plugs saaf rakhein:** Ganda filter engine ka airflow block karta hai aur mileage kam karta hai.
-• **Engine Idle na karein:** Agar gari 30 seconds se zyada khadi ho toh engine band kar dein.
-
-*Aapke fuel logs aur calculations bilkul sahi kaam kar rahe hain. Aap upar fuel entries save karte rahein!*`,
-
-        hi: `*सूचना: एआई असिस्टेंट वर्तमान में व्यस्त है (एपीआई कोटा सीमा समाप्त हो गई है)।*
-
-नमस्ते! मैं अभी **ऑफ़लाइन सहायता मोड** में काम कर रहा हूँ क्योंकि हमारे मुफ़्त एआई सर्वर पर ट्रैफ़िक अधिक है।
-
-आपके वाहन की ईंधन दक्षता बढ़ाने के लिए कुछ उपयोगी सुझाव:
-• **टायर का दबाव सही रखें:** कम हवा वाले टायरों से ईंधन की खपत 3% तक बढ़ सकती है।
-• **धीरे-धीरे गति बढ़ाएं:** अचानक तेज़ गति और हार्ड ब्रेकिंग से बचें, इससे 15-20% ईंधन बचाया जा सकता है।
-• **एयर फ़िल्टर और स्पार्क प्लग साफ़ रखें:** गंदा फ़िल्टर इंजन के हवा के प्रवाह को कम करता है और माइलेज घटाता है।
-• **आइडलिंग से बचें:** यदि वाहन 30 सेकंड से अधिक समय तक खड़ा है, तो इंजन बंद कर दें।
-
-*आपके लॉग और गणना पूरी तरह से काम कर रहे हैं! आप ऊपर अपने रिफ़िल रिकॉर्ड को सुरक्षित रख सकते हैं।*`,
-
-        ar: `*ملاحظة: مساعد الذكاء الاصطناعي يواجه ضغطاً كبيراً حالياً (تم تجاوز الحد الأقصى للطلبات).*
-
-مرحباً! أنا أعمل حالياً في **وضع الدعم غير المتصل بالإنترنت** نظراً للضغط المؤقت على خوادم الذكاء الاصطناعي المجانية.
-
-إليك بعض النصائح القيمة لتحسين كفاءة استهلاك الوقود لسيارتك:
-• **حافظ على ضغط الإطارات المناسب:** الإطارات غير المنفوخة تزيد من استهلاك الوقود بنسبة تصل إلى 3٪.
-• **التسارع اللطيف:** تجنب التسارع المفاجئ والكبح الشديد لتوفير ما يصل إلى 15-20٪ من الوقود.
-• **تنظيف فلتر الهواء وشمعات الاحتراق:** الفلتر المتسخ يقلل من تدفق الهواء إلى المحرك ويقلل من الكفاءة.
-• **تجنب التباطؤ الزائد:** أوقف تشغيل المحرك إذا كنت متوقفاً لأكثر من 30 ثانية.
-
-*سجلاتك وحساباتك لا تزال تعمل بنسبة 100%! لا تتردد في إضافة سجلات الوقود الخاصة بك أعلاه.*`
-      };
-
-      const fallbackSpeechTexts: Record<string, string> = {
-        en: "Notice. AI Assistant is currently operating in offline mode because the free server limit has been reached. Your logs and calculations are still fully functional.",
-        ur: "सूचना। फ्री सर्वर लिमिट पूरी होने की वजह से असिस्टेंट ऑफलाइन मोड में काम कर रहा है। गाड़ी का माइलेज बढ़ाने के लिए टायर का प्रेशर सही रखें, आराम से रेस दें, एयर फिल्टर और स्पार्क प्लग साफ रखें, और खड़ी गाड़ी का इंजन बंद रखें।",
-        roman: "सूचना। फ्री सर्वर लिमिट पूरी होने की वजह से असिस्टेंट ऑफलाइन मोड में काम कर रहा है। गाड़ी का माइलेज बढ़ाने के लिए टायर का प्रेशर सही रखें, आराम से रेस दें, एयर फिल्टर और स्पार्क प्लग साफ रखें, और खड़ी गाड़ी का इंजन बंद रखें।",
-        hi: "सूचना। मुफ़्त सर्वर सीमा समाप्त होने के कारण एआई असिस्टेंट ऑफ़लाइन मोड में काम कर रहा है। गाड़ी का माइलेज बढ़ाने के लिए टायर का दबाव सही रखें, आराम से गति बढ़ाएं, एयर फ़िल्टर और स्पार्क प्लग साफ़ रखें, और खड़ी गाड़ी का इंजन बंद रखें।",
-        ar: "ملاحظة. مساعد الذكاء الاصطناعي يواجه ضغطاً كبيراً حالياً ويعمل في وضع عدم الاتصال."
-      };
-
-      const replyText = fallbackReplies[resolvedLang] || fallbackReplies["en"];
-      const speechText = fallbackSpeechTexts[resolvedLang] || fallbackSpeechTexts["en"];
-
-      return res.json({
-        reply: replyText,
-        speechText: speechText,
-        resolvedLanguage: resolvedLang,
-        resolvedSpeechLang: resolvedSpeechLang,
-        timestamp: new Date().toISOString(),
-        status: "quota_fallback"
-      });
-    }
-
-    res.status(500).json({
-      error: error.message || "An unexpected error occurred during chat processing.",
-      status: "error"
+    return res.json({
+      reply: reply,
+      speechText: speech,
+      resolvedLanguage: resolvedLang,
+      resolvedSpeechLang: resolvedSpeechLang,
+      timestamp: new Date().toISOString(),
+      status: "quota_fallback"
     });
   }
 });

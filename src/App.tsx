@@ -168,17 +168,17 @@ export default function App() {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + 5;
+        return prev + 1;
       });
-    }, 80);
+    }, 90); // Smooth increments to reach 100% in ~9 seconds
 
     const fadeTimeout = setTimeout(() => {
       setFadeSplash(true);
-    }, 2000);
+    }, 9300);
 
     const removeTimeout = setTimeout(() => {
       setShowSplash(false);
-    }, 2700);
+    }, 10000);
 
     return () => {
       clearInterval(progressInterval);
@@ -325,8 +325,42 @@ export default function App() {
             {/* Super Glow Animated App Logo */}
             <div className="relative group">
               <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-r from-indigo-500 to-purple-600 opacity-75 blur-xl group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-              <div className="relative w-24 h-24 rounded-[1.75rem] bg-slate-900 border border-slate-800 flex items-center justify-center shadow-2xl">
-                <span className="text-5xl animate-bounce" style={{ animationDuration: '3s' }}>⚡</span>
+              <div className="relative w-24 h-24 rounded-[1.75rem] bg-slate-900 border border-slate-800 flex items-center justify-center shadow-2xl overflow-hidden group-hover:border-indigo-500/50 transition-all duration-300">
+                <svg className="w-16 h-16 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {/* Outer glowing dash ring */}
+                  <circle cx="12" cy="12" r="9" stroke="url(#fuel-grad)" strokeWidth="1.2" strokeDasharray="3 3" className="animate-[spin_30s_linear_infinite]" />
+                  {/* Neural nodes */}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" stroke="url(#fuel-grad)" d="M12 3v2M12 19v2M3 12h2M19 12h2" className="opacity-60" />
+                  {/* Fuel droplet outline & semi-transparent glow */}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    stroke="url(#fuel-grad)"
+                    fill="url(#droplet-grad)"
+                    d="M12 2.5C12 2.5 6 9 6 13.5C6 16.8137 8.68629 19.5 12 19.5C15.3137 19.5 18 16.8137 18 13.5C18 9 12 2.5 12 2.5Z"
+                  />
+                  {/* White lightning core */}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    stroke="#ffffff"
+                    fill="#ffffff"
+                    d="M11.5 9.5L9.5 13.5H12.5L11.5 17.5L14.5 12.5H11.5L11.5 9.5Z"
+                    className="drop-shadow-[0_0_6px_rgba(255,255,255,0.8)] animate-pulse"
+                  />
+                  <defs>
+                    <linearGradient id="fuel-grad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" />
+                      <stop offset="100%" stopColor="#a855f7" />
+                    </linearGradient>
+                    <linearGradient id="droplet-grad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="rgba(99, 102, 241, 0.35)" />
+                      <stop offset="100%" stopColor="rgba(168, 85, 247, 0.05)" />
+                    </linearGradient>
+                  </defs>
+                </svg>
               </div>
               {/* Sparkles around logo */}
               <Sparkles className="absolute -top-3 -right-3 text-yellow-400 w-6 h-6 animate-spin" style={{ animationDuration: '8s' }} />
@@ -754,385 +788,6 @@ export default function App() {
                           />
                         </label>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Interactive Smart Features Directory & Guidelines */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
-                  <div className="border-b border-slate-800 pb-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="text-indigo-400 w-5 h-5 animate-pulse" />
-                      <h3 className="text-sm font-black text-slate-100 uppercase tracking-wider">
-                        📋 Feature Directory & Guidelines (استعمال کی مکمل رہنمائی)
-                      </h3>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                      Explore our fully simulated smart utility modules! Click a card below to read the comprehensive **English, Urdu, and Roman Urdu testing instructions**, and instantly open the live feature.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* OBD CARD */}
-                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${expandedGuideId === "obd" ? "bg-slate-950 border-indigo-500/50" : "bg-slate-950/40 border-slate-800/80 hover:border-slate-750"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mt-0.5">
-                            <Bluetooth size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-200">🔌 OBD-II Bluetooth Diagnostics</h4>
-                            <p className="text-[10px] text-slate-400 italic">انجن کی لائیو اسپیڈ اور کارکردگی کی اسکرین</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                              Simulates ELM327 adapter tracking. Run real-time ECU trouble code scans.
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setExpandedGuideId(expandedGuideId === "obd" ? null : "obd")}
-                          className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline shrink-0 cursor-pointer"
-                        >
-                          {expandedGuideId === "obd" ? "Hide Guide" : "View Guide"}
-                        </button>
-                      </div>
-
-                      {expandedGuideId === "obd" && (
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2.5 text-[11px] leading-relaxed">
-                          <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-                            <p className="font-bold text-slate-300 uppercase tracking-wide text-[9px] text-indigo-400">📋 Multilingual Description (تفصیل):</p>
-                            <p className="text-slate-300"><strong>English:</strong> Pair your virtual OBD-II sensor to view live dials and read fault codes.</p>
-                            <p className="text-slate-400"><strong>Roman Urdu:</strong> Adapter active karein taake engine parameters aur check engine faults scan ho sakein.</p>
-                            <p className="text-slate-400"><strong>Urdu:</strong> لائیو اسپیڈ اور انجن کی حالت معلوم کرنے اور انجن کے مسائل اسکین کرنے کے لیے۔</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-bold text-indigo-400 text-[9px] uppercase tracking-wide">💡 Step-By-Step Test Steps (ٹیسٹنگ کا طریقہ):</p>
-                            <ol className="list-decimal list-inside text-slate-400 space-y-1 pl-1">
-                              <li>Click <strong>Launch OBD Feature</strong> below.</li>
-                              <li>Press the purple <strong>"Pair OBD-II Adapter"</strong> button to run the live simulator.</li>
-                              <li>Watch the dynamic telemetry metrics (RPM, Speed, Volts) update in real-time.</li>
-                              <li>Click <strong>"Scan For Fault Codes (DTC)"</strong> to see active check engine alarms in Urdu and English.</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => navigateToFeature("tools", "obd")}
-                        className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-transparent text-[11px] font-bold transition-all cursor-pointer"
-                      >
-                        <PlayCircle size={12} />
-                        <span>Launch OBD Feature</span>
-                      </button>
-                    </div>
-
-                    {/* MAINTENANCE CARD */}
-                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${expandedGuideId === "maint" ? "bg-slate-950 border-indigo-500/50" : "bg-slate-950/40 border-slate-800/80 hover:border-slate-750"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mt-0.5">
-                            <Wrench size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-200">🔧 Predictive Maintenance Tracker</h4>
-                            <p className="text-[10px] text-slate-400 italic">گاڑی کے پرزوں کی عمر اور تبدیلی کا ٹریکر</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                              Track wear status of Engine Oil, Spark Plugs, Brakes, and Tyres.
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setExpandedGuideId(expandedGuideId === "maint" ? null : "maint")}
-                          className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline shrink-0 cursor-pointer"
-                        >
-                          {expandedGuideId === "maint" ? "Hide Guide" : "View Guide"}
-                        </button>
-                      </div>
-
-                      {expandedGuideId === "maint" && (
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2.5 text-[11px] leading-relaxed">
-                          <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-                            <p className="font-bold text-slate-300 uppercase tracking-wide text-[9px] text-indigo-400">📋 Multilingual Description (تفصیل):</p>
-                            <p className="text-slate-300"><strong>English:</strong> Set service mileage to compute live part fatigue status and get alerts.</p>
-                            <p className="text-slate-400"><strong>Roman Urdu:</strong> Mobil oil aur plugs tabdeeli ka mileage likhein taake system wear and tear calculate kare.</p>
-                            <p className="text-slate-400"><strong>Urdu:</strong> آئل اور اسپارک پلگ کی آخری تبدیلی کا کلو میٹر لکھیں تا کہ لائیو ہیلتھ معلوم ہوسکے۔</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-bold text-indigo-400 text-[9px] uppercase tracking-wide">💡 Step-By-Step Test Steps (ٹیسٹنگ کا طریقہ):</p>
-                            <ol className="list-decimal list-inside text-slate-400 space-y-1 pl-1">
-                              <li>Click <strong>Launch Maintenance</strong> below.</li>
-                              <li>Click the <strong>"Update Maintenance Log"</strong> button to reveal the service forms.</li>
-                              <li>Enter custom odometer numbers for Oil, Plugs, or Brakes (e.g., 120,000 km) and click Save.</li>
-                              <li>The progress bars will instantly recalculate part wear levels and display km remaining.</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => navigateToFeature("tools", "maintenance")}
-                        className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-transparent text-[11px] font-bold transition-all cursor-pointer"
-                      >
-                        <PlayCircle size={12} />
-                        <span>Launch Maintenance</span>
-                      </button>
-                    </div>
-
-                    {/* BUDGET CARD */}
-                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${expandedGuideId === "budget" ? "bg-slate-950 border-indigo-500/50" : "bg-slate-950/40 border-slate-800/80 hover:border-slate-750"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mt-0.5">
-                            <Calculator size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-200">📊 Smart Budget Planner & Alerts</h4>
-                            <p className="text-[10px] text-slate-400 italic">پٹرول بجٹ پلانر اور خودکار الارم سسٹم</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                              Monitor monthly fuel spending limits with automated warnings.
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setExpandedGuideId(expandedGuideId === "budget" ? null : "budget")}
-                          className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline shrink-0 cursor-pointer"
-                        >
-                          {expandedGuideId === "budget" ? "Hide Guide" : "View Guide"}
-                        </button>
-                      </div>
-
-                      {expandedGuideId === "budget" && (
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2.5 text-[11px] leading-relaxed">
-                          <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-                            <p className="font-bold text-slate-300 uppercase tracking-wide text-[9px] text-indigo-400">📋 Multilingual Description (تفصیل):</p>
-                            <p className="text-slate-300"><strong>English:</strong> Allocate monthly spending limits and trigger alerts if costs exceed limits.</p>
-                            <p className="text-slate-400"><strong>Roman Urdu:</strong> Apna monthly budget set karein aur limits break hone par alerts receive karein.</p>
-                            <p className="text-slate-400"><strong>Urdu:</strong> پٹرول کا ماہانہ بجٹ مقرر کریں اور حد سے بڑھنے پر فورا الرٹس حاصل کریں۔</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-bold text-indigo-400 text-[9px] uppercase tracking-wide">💡 Step-By-Step Test Steps (ٹیسٹنگ کا طریقہ):</p>
-                            <ol className="list-decimal list-inside text-slate-400 space-y-1 pl-1">
-                              <li>Click <strong>Launch Budget Planner</strong> below.</li>
-                              <li>Modify the Monthly Budget (e.g., 20,000 PKR) and Threshold (e.g., 80%).</li>
-                              <li>Now, return to the Dashboard and log a high fuel refilling cost (e.g. 19,000 PKR).</li>
-                              <li>Go to the <strong>Bento Analytics</strong> sub-tab inside Tools Suite; you'll see critical visual gauges and warnings!</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => navigateToFeature("tools", "budget")}
-                        className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-transparent text-[11px] font-bold transition-all cursor-pointer"
-                      >
-                        <PlayCircle size={12} />
-                        <span>Launch Budget Planner</span>
-                      </button>
-                    </div>
-
-                    {/* THEFT CARD */}
-                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${expandedGuideId === "theft" ? "bg-slate-950 border-indigo-500/50" : "bg-slate-950/40 border-slate-800/80 hover:border-slate-750"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mt-0.5">
-                            <ShieldAlert size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-200">🛡️ Fuel Theft & Leak Parking Guard</h4>
-                            <p className="text-[10px] text-slate-400 italic">پٹرول چوری اور پائپ لیک پروٹیکشن الارم</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                              Triggers live voice alarms if parked fuel sensor levels drop rapidly.
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setExpandedGuideId(expandedGuideId === "theft" ? null : "theft")}
-                          className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline shrink-0 cursor-pointer"
-                        >
-                          {expandedGuideId === "theft" ? "Hide Guide" : "View Guide"}
-                        </button>
-                      </div>
-
-                      {expandedGuideId === "theft" && (
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2.5 text-[11px] leading-relaxed">
-                          <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-                            <p className="font-bold text-slate-300 uppercase tracking-wide text-[9px] text-indigo-400">📋 Multilingual Description (تفصیل):</p>
-                            <p className="text-slate-300"><strong>English:</strong> Security mode that monitors sudden siphoning and initiates loud warning alarms.</p>
-                            <p className="text-slate-400"><strong>Roman Urdu:</strong> Guard mode active karein. Fuel level achanak girne par chori ka alarm bajega.</p>
-                            <p className="text-slate-400"><strong>Urdu:</strong> پارکنگ کے دوران گارڈ فعال کریں۔ پٹرول چوری یا پائپ لیک پر الارم بجے گا۔</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-bold text-indigo-400 text-[9px] uppercase tracking-wide">💡 Step-By-Step Test Steps (ٹیسٹنگ کا طریقہ):</p>
-                            <ol className="list-decimal list-inside text-slate-400 space-y-1 pl-1">
-                              <li>Click <strong>Launch Guard Mode</strong> below.</li>
-                              <li>Toggle the green <strong>"Armed & Guarding"</strong> switch to turn the security system on.</li>
-                              <li>A virtual float sensor dial will display and continuously scan.</li>
-                              <li>Keep the screen open; random background theft attempts will trigger siren audio loops!</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => navigateToFeature("tools", "theft")}
-                        className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-transparent text-[11px] font-bold transition-all cursor-pointer"
-                      >
-                        <PlayCircle size={12} />
-                        <span>Launch Guard Mode</span>
-                      </button>
-                    </div>
-
-                    {/* MAP CARD */}
-                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${expandedGuideId === "map" ? "bg-slate-950 border-indigo-500/50" : "bg-slate-950/40 border-slate-800/80 hover:border-slate-750"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mt-0.5">
-                            <MapPin size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-200">📍 Nearest Cheap Fuel Finder Map</h4>
-                            <p className="text-[10px] text-slate-400 italic">سستے ترین پٹرول پمپ کی تلاش کا لائیو نقشہ</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                              Find, compare, and navigate to cheapest petrol pumps nearby.
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setExpandedGuideId(expandedGuideId === "map" ? null : "map")}
-                          className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline shrink-0 cursor-pointer"
-                        >
-                          {expandedGuideId === "map" ? "Hide Guide" : "View Guide"}
-                        </button>
-                      </div>
-
-                      {expandedGuideId === "map" && (
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2.5 text-[11px] leading-relaxed">
-                          <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-                            <p className="font-bold text-slate-300 uppercase tracking-wide text-[9px] text-indigo-400">📋 Multilingual Description (تفصیل):</p>
-                            <p className="text-slate-300"><strong>English:</strong> High-fidelity maps to locate stations and get audio routing directives.</p>
-                            <p className="text-slate-400"><strong>Roman Urdu:</strong> GPS ya cities me se pumps select karein, cheaper prices compare karein aur route chalain.</p>
-                            <p className="text-slate-400"><strong>Urdu:</strong> لائیو لوکیشن سے سستے ترین پٹرول پمپس تلاش کریں، قیمتوں کا موازنہ کریں اور راستہ دیکھیں۔</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-bold text-indigo-400 text-[9px] uppercase tracking-wide">💡 Step-By-Step Test Steps (ٹیسٹنگ کا طریقہ):</p>
-                            <ol className="list-decimal list-inside text-slate-400 space-y-1 pl-1">
-                              <li>Click <strong>Launch Fuel Finder Map</strong> below.</li>
-                              <li>Select a preset city area or press the <strong>"Detect Location"</strong> GPS button to sync with your actual GPS.</li>
-                              <li>Toggle <strong>"Cheapest"</strong> to sort and highlight the station with the lowest rate.</li>
-                              <li>Click <strong>"Start Navigation"</strong> to plot a dynamic path and trigger browser spoken audio route voice.</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => navigateToFeature("map")}
-                        className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-transparent text-[11px] font-bold transition-all cursor-pointer"
-                      >
-                        <PlayCircle size={12} />
-                        <span>Launch Fuel Finder Map</span>
-                      </button>
-                    </div>
-
-                    {/* DRIVING HUD CARD */}
-                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${expandedGuideId === "hud" ? "bg-slate-950 border-indigo-500/50" : "bg-slate-950/40 border-slate-800/80 hover:border-slate-750"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mt-0.5">
-                            <MessageSquare size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-200">🎙️ Voice Driving HUD Mode</h4>
-                            <p className="text-[10px] text-slate-400 italic">آواز کے اشاروں سے گاڑی کنٹرول کرنے کی اسکرین</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                              Interact with voice commands while driving without hands.
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setExpandedGuideId(expandedGuideId === "hud" ? null : "hud")}
-                          className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline shrink-0 cursor-pointer"
-                        >
-                          {expandedGuideId === "hud" ? "Hide Guide" : "View Guide"}
-                        </button>
-                      </div>
-
-                      {expandedGuideId === "hud" && (
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2.5 text-[11px] leading-relaxed">
-                          <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-                            <p className="font-bold text-slate-300 uppercase tracking-wide text-[9px] text-indigo-400">📋 Multilingual Description (تفصیل):</p>
-                            <p className="text-slate-300"><strong>English:</strong> Voice-activated telematics. Speak parameters and hear synthesized voice readouts.</p>
-                            <p className="text-slate-400"><strong>Roman Urdu:</strong> Mic on karke bolain, system car parameters ko Urdu ya English me boley ga.</p>
-                            <p className="text-slate-400"><strong>Urdu:</strong> ڈرائیونگ کے دوران مائیک فعال کر کے آواز کے اشاروں سے گاڑی کنٹرول کریں۔</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-bold text-indigo-400 text-[9px] uppercase tracking-wide">💡 Step-By-Step Test Steps (ٹیسٹنگ کا طریقہ):</p>
-                            <ol className="list-decimal list-inside text-slate-400 space-y-1 pl-1">
-                              <li>Click <strong>Launch Driving HUD</strong> below.</li>
-                              <li>Pick your active spoken language preference (English or Urdu).</li>
-                              <li>Click the purple <strong>Microphone Button</strong> and grant browser microphone permission.</li>
-                              <li>Say clearly: <strong>"status"</strong> or <strong>"average"</strong> or <strong>"faults"</strong> to receive real-time synthesized voice feedback!</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => navigateToFeature("tools", "handsfree")}
-                        className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-transparent text-[11px] font-bold transition-all cursor-pointer"
-                      >
-                        <PlayCircle size={12} />
-                        <span>Launch Driving HUD</span>
-                      </button>
-                    </div>
-
-                    {/* ABOUT US CARD */}
-                    <div className={`p-4 rounded-2xl border transition-all duration-300 ${expandedGuideId === "about" ? "bg-slate-950 border-indigo-500/50" : "bg-slate-950/40 border-slate-800/80 hover:border-slate-750"}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mt-0.5">
-                            <HelpCircle size={16} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-200">ℹ️ About Us & Rao Developers</h4>
-                            <p className="text-[10px] text-slate-400 italic">رائو ڈیولپرز اور ڈویلپمنٹ ہاؤس کی معلومات</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                              Authorship credentials, system specifications, and build version notes.
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setExpandedGuideId(expandedGuideId === "about" ? null : "about")}
-                          className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline shrink-0 cursor-pointer"
-                        >
-                          {expandedGuideId === "about" ? "Hide Guide" : "View Guide"}
-                        </button>
-                      </div>
-
-                      {expandedGuideId === "about" && (
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-2.5 text-[11px] leading-relaxed">
-                          <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/40">
-                            <p className="font-bold text-slate-300 uppercase tracking-wide text-[9px] text-indigo-400">📋 Multilingual Description (تفصیل):</p>
-                            <p className="text-slate-300"><strong>English:</strong> Information regarding our development team credentials and build information.</p>
-                            <p className="text-slate-400"><strong>Roman Urdu:</strong> Rao Developers credentials, system architecture, aur v2.5.0 details.</p>
-                            <p className="text-slate-400"><strong>Urdu:</strong> رائو ڈیولپرز اور ایپلی کیشن کے ریلیز ورژن کی تفصیلات۔</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-bold text-indigo-400 text-[9px] uppercase tracking-wide">💡 Step-By-Step Test Steps (ٹیسٹنگ کا طریقہ):</p>
-                            <ol className="list-decimal list-inside text-slate-400 space-y-1 pl-1">
-                              <li>Click <strong>Open About Us View</strong> below.</li>
-                              <li>Inspect development house history, build version details, and our operational philosophy.</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => navigateToFeature("about")}
-                        className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-transparent text-[11px] font-bold transition-all cursor-pointer"
-                      >
-                        <PlayCircle size={12} />
-                        <span>Open About Us View</span>
-                      </button>
                     </div>
                   </div>
                 </div>
