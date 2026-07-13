@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage, SupportedLanguage, LANGUAGES, Vehicle, FuelEntry } from "../types";
-import { Send, Mic, MicOff, Volume2, VolumeX, RefreshCw, AlertCircle, Play, Square, MessageSquare, Flame, Pin, Trash2, History, Compass, X, Scale, Calculator, Wrench, ChevronDown, CheckCircle, Plus, Info, Zap } from "lucide-react";
+import { Send, Mic, MicOff, Volume2, VolumeX, RefreshCw, AlertCircle, Play, Square, MessageSquare, Flame, Pin, Trash2, History, Compass, X, Scale, Calculator, Wrench, ChevronDown, CheckCircle, Plus, Info, Zap, Sparkles } from "lucide-react";
 
 interface AIFuelAssistantProps {
   activeVehicle: Vehicle | null;
@@ -1161,25 +1161,25 @@ export default function AIFuelAssistant({
   };
 
   return (
-    <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/85 rounded-3xl p-5 shadow-2xl h-full flex flex-col min-h-[520px] max-h-[680px] relative overflow-hidden">
+    <div className="bg-slate-900/60 border border-violet-500/15 rounded-2xl p-5 shadow-2xl h-full flex flex-col min-h-[520px] max-h-[680px] relative overflow-hidden">
       {/* Top Professional Glowing Accent */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 opacity-90" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-600 to-indigo-600 opacity-90" />
 
       {/* Assistant Header */}
-      <div className="flex items-center justify-between border-b border-slate-800/60 pb-3.5 mb-3 shrink-0">
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5 mb-3 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 border border-indigo-500/25 flex items-center justify-center text-white relative shadow-inner">
-            <span className="text-lg">🤖</span>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-indigo-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-violet-600/10 border border-violet-500/25 flex items-center justify-center text-white relative shadow-inner">
+            <Sparkles size={18} className="text-violet-400 animate-pulse" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-violet-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping"></span>
             </span>
           </div>
           <div>
             <h2 className="text-xs font-bold text-white tracking-wider uppercase">AI Fuel Expert</h2>
             <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-              <span className="text-green-400 animate-pulse">● System Online</span>
+              <span className="text-green-400 animate-pulse">System Online</span>
               <span className="text-slate-700">•</span>
-              <span className="text-indigo-400">Gemini 3.5</span>
+              <span className="text-violet-400">Gemini 1.5 Flash</span>
             </div>
           </div>
         </div>
@@ -1191,7 +1191,7 @@ export default function AIFuelAssistant({
             onClick={() => setShowHistory(!showHistory)}
             className={`p-1.5 rounded-xl transition border text-xs cursor-pointer ${
               showHistory
-                ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
+                ? "bg-violet-500/20 text-violet-400 border-violet-500/30"
                 : "bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-slate-200"
             }`}
             title="Saved Chats History"
@@ -1215,7 +1215,7 @@ export default function AIFuelAssistant({
           {/* New Conversation Unit Button */}
           <button
             onClick={handleClearChat}
-            className="p-1.5 rounded-xl transition border text-xs cursor-pointer bg-slate-950 text-indigo-400 border-indigo-500/20 hover:bg-indigo-600/10 hover:text-indigo-200"
+            className="p-1.5 rounded-xl transition border text-xs cursor-pointer bg-slate-950 text-violet-400 border-violet-500/20 hover:bg-violet-600/10 hover:text-violet-200"
             title="Start New Conversation Unit"
           >
             <Plus size={13} />
@@ -1230,26 +1230,7 @@ export default function AIFuelAssistant({
             <Trash2 size={13} />
           </button>
 
-          {/* TTS Readout Button */}
-          <button
-            onClick={() => {
-              if (isSpeaking) {
-                stopSpeaking();
-              } else {
-                setVoicePlaybackEnabled(!voicePlaybackEnabled);
-              }
-            }}
-            className={`p-1.5 rounded-xl transition border text-xs cursor-pointer ${
-              isSpeaking
-                ? "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse"
-                : voicePlaybackEnabled
-                ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
-                : "bg-slate-950 text-slate-500 border-slate-800 hover:bg-slate-900"
-            }`}
-            title={isSpeaking ? "Stop Speaking" : voicePlaybackEnabled ? "Voice Enabled" : "Voice Off"}
-          >
-            {isSpeaking ? <Square size={13} /> : voicePlaybackEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
-          </button>
+
 
           {/* Auto-detect Language Setting Button */}
           <button
@@ -1260,7 +1241,7 @@ export default function AIFuelAssistant({
             }}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition border text-xs font-semibold cursor-pointer ${
               autoDetectLanguage
-                ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/10"
+                ? "bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-600/10"
                 : "bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-900"
             }`}
             title={autoDetectLanguage ? "Automatic Language Detection is ON" : "Automatic Language Detection is OFF"}
@@ -1273,7 +1254,7 @@ export default function AIFuelAssistant({
           <select
             value={currentLanguage}
             onChange={(e) => onLanguageChange(e.target.value as SupportedLanguage)}
-            className="text-xs px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-xl font-medium text-slate-300 focus:outline-indigo-500/50"
+            className="text-xs px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-xl font-medium text-slate-300 focus:ring-2 focus:ring-violet-500/50 focus:outline-none"
           >
             {Object.values(LANGUAGES).map((lang) => (
               <option key={lang.code} value={lang.code} className="bg-slate-900 text-slate-300">
@@ -1290,7 +1271,7 @@ export default function AIFuelAssistant({
           onClick={() => { setActivePanel("chat"); setShowHistory(false); }}
           className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer uppercase tracking-wider ${
             activePanel === "chat" && !showHistory
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-violet-600 text-white shadow-md shadow-violet-600/10"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
           }`}
         >
@@ -1301,24 +1282,14 @@ export default function AIFuelAssistant({
           onClick={() => { setActivePanel("tools"); setShowHistory(false); }}
           className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer uppercase tracking-wider ${
             activePanel === "tools" && !showHistory
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+              ? "bg-violet-600 text-white shadow-md shadow-violet-600/10"
               : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
           }`}
         >
           <Wrench size={11} />
           <span>AI Tools Suite</span>
         </button>
-        <button
-          onClick={() => { setActivePanel("voicelog"); setShowHistory(false); }}
-          className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer uppercase tracking-wider ${
-            activePanel === "voicelog" && !showHistory
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
-          }`}
-        >
-          <Mic size={11} />
-          <span>Voice Log ({voiceCommandHistory.length})</span>
-        </button>
+
       </div>
 
       {/* Suggestion Chips - Only shown in Chat tab when not showing saved sessions */}
@@ -1747,7 +1718,7 @@ export default function AIFuelAssistant({
                   className="p-2.5 rounded-xl border border-slate-850 hover:border-slate-800 bg-slate-900 hover:bg-slate-850 transition text-left cursor-pointer flex items-center justify-between gap-2 group"
                 >
                   <span className="text-xs font-medium text-slate-300 italic truncate flex-1">" {phrase} "</span>
-                  <span className="text-[8px] bg-indigo-600/10 text-indigo-400 border border-indigo-500/10 font-bold rounded px-1.5 py-0.5 uppercase tracking-wide group-hover:bg-indigo-600 group-hover:text-white transition">
+                  <span className="text-[8px] bg-violet-600/10 text-violet-400 border border-violet-500/10 font-bold rounded px-1.5 py-0.5 uppercase tracking-wide group-hover:bg-violet-600 group-hover:text-white transition">
                     Run
                   </span>
                 </div>
@@ -1771,26 +1742,20 @@ export default function AIFuelAssistant({
                   className={`p-3 max-w-[85%] rounded-2xl text-xs leading-relaxed shadow-md relative ${
                     isModel
                       ? "bg-slate-950 text-slate-200 border border-slate-800/80 rounded-tl-none whitespace-pre-line"
-                      : "bg-indigo-600 text-white font-medium rounded-tr-none"
+                      : "bg-violet-600 text-white font-medium rounded-tr-none"
                   }`}
                 >
                   {msg.text}
 
                   {/* Individual delete & voice playback button group */}
                   {isModel ? (
-                    <div className="mt-2 pt-1.5 border-t border-slate-800/60 flex justify-between items-center gap-2">
+                    <div className="mt-2 pt-1.5 border-t border-slate-800/60 flex justify-start items-center gap-2">
                       <button
                         onClick={() => handleDeleteMessage(msg.id)}
                         className="p-1 text-slate-600 hover:text-red-400 hover:bg-slate-900 rounded transition flex items-center gap-1 text-[9px] font-bold cursor-pointer"
                         title="Remove Message"
                       >
                         <Trash2 size={10} /> DELETE
-                      </button>
-                      <button
-                        onClick={() => speakMessage(msg.speechText || msg.text)}
-                        className="p-1 text-slate-500 hover:text-indigo-400 hover:bg-slate-900 rounded transition flex items-center gap-1 text-[9px] font-bold cursor-pointer"
-                      >
-                        <Play size={10} /> SPEAK OUT
                       </button>
                     </div>
                   ) : (
@@ -1815,9 +1780,9 @@ export default function AIFuelAssistant({
               </div>
               <div className="bg-slate-950 text-slate-400 border border-slate-800 p-3 rounded-2xl rounded-tl-none text-xs flex-1 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></span>
-                  <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce delay-100"></span>
-                  <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce delay-200"></span>
+                  <span className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></span>
+                  <span className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-100"></span>
+                  <span className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce delay-200"></span>
                   <span className="italic text-[10px] font-medium text-slate-500">Gemini logic analyzing...</span>
                 </div>
                 <button
@@ -1844,19 +1809,6 @@ export default function AIFuelAssistant({
       {/* Input box + dictation buttons */}
       <div className="shrink-0 border-t border-slate-800/60 pt-3">
         <div className="flex items-center gap-2">
-          {/* Voice Typing Button (Glows when active) */}
-          <button
-            onClick={toggleListening}
-            className={`p-2.5 rounded-xl transition border text-xs cursor-pointer flex items-center justify-center shrink-0 ${
-              isListening
-                ? "bg-red-600 text-white border-red-600 hover:bg-red-700 animate-pulse ring-4 ring-red-950"
-                : "bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-slate-200"
-            }`}
-            title={isListening ? "Stop listening" : "Speak with voice dictation"}
-          >
-            {isListening ? <MicOff size={15} /> : <Mic size={15} />}
-          </button>
-
           <input
             type="text"
             placeholder={LANGUAGES[currentLanguage].placeholder}
@@ -1869,7 +1821,7 @@ export default function AIFuelAssistant({
               }
             }}
             disabled={loading}
-            className="flex-1 text-xs px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-indigo-500/50 focus:bg-slate-950 text-slate-100 font-medium placeholder-slate-600"
+            className="flex-1 text-xs px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:outline-none focus:bg-slate-950 text-slate-100 font-medium placeholder-slate-600"
           />
 
           <button
@@ -1878,18 +1830,11 @@ export default function AIFuelAssistant({
               handleSendMessage(input);
             }}
             disabled={loading || !input.trim()}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-md cursor-pointer disabled:opacity-50"
+            className="p-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl transition shadow-md cursor-pointer disabled:opacity-50"
           >
             <Send size={15} />
           </button>
         </div>
-
-        {/* Listening / speaking status */}
-        {isListening && (
-          <div className="text-[10px] text-red-400 font-semibold mt-1 flex items-center gap-1 justify-center animate-pulse">
-            <span>🔴 Microphone is active... speak in {LANGUAGES[currentLanguage].name}</span>
-          </div>
-        )}
       </div>
     </div>
   );

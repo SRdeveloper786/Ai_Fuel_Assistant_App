@@ -169,10 +169,10 @@ export default function FuelLogsManager({
 
   if (!activeVehicle) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-3 shadow-xl">
+      <div className="bg-slate-900/60 border border-white/[0.08] rounded-2xl p-5 text-center space-y-3 shadow-xl">
         <Gauge size={24} className="text-slate-600 mx-auto" />
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Fuel & Refill Log</h2>
-        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-400">Fuel & Refill Log</h2>
+        <p className="text-[15px] text-slate-500 max-w-sm mx-auto font-normal">
           You must create and select a vehicle profile above to start recording fuel logs and calculating fuel averages.
         </p>
       </div>
@@ -180,10 +180,10 @@ export default function FuelLogsManager({
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800/80 rounded-3xl p-5 shadow-xl">
+    <div className="bg-slate-900/60 border border-white/[0.08] rounded-2xl p-5 shadow-xl">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Fuel Logs ({activeVehicle.name})</h2>
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-400">Fuel Logs ({activeVehicle.name})</h2>
           <p className="text-xs text-slate-500">Log fills to calculate true average efficiency</p>
         </div>
         {!showForm && (
@@ -192,7 +192,7 @@ export default function FuelLogsManager({
               setError(null);
               setShowForm(true);
             }}
-            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-lg shadow-indigo-600/10 cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-lg shadow-indigo-600/10 cursor-pointer"
           >
             <Plus size={14} /> Log Refuel
           </button>
@@ -200,7 +200,7 @@ export default function FuelLogsManager({
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-4 space-y-3 transition">
+        <form onSubmit={handleSubmit} className="bg-slate-950/60 border border-white/[0.06] rounded-xl p-4 mb-4 space-y-3 transition">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">New Fuel Entry</h3>
             {activeVehicleLogs.length === 0 && (
@@ -217,7 +217,7 @@ export default function FuelLogsManager({
           )}
 
           {/* OCR Upload Zone */}
-          <div className="border border-dashed border-slate-800 rounded-xl p-3 bg-slate-900/40 text-center space-y-2">
+          <div className="border border-dashed border-white/[0.08] rounded-xl p-3 bg-slate-900/40 text-center space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                 <FileText size={12} className="text-indigo-400" /> Smart Receipt OCR Scanner
@@ -231,7 +231,7 @@ export default function FuelLogsManager({
                 <p className="text-[11px] text-slate-400 font-medium animate-pulse">Gemini AI analyzing receipt details...</p>
               </div>
             ) : (
-              <label className="block cursor-pointer py-3 hover:bg-slate-900/80 rounded-lg transition border border-transparent hover:border-slate-800">
+              <label className="block cursor-pointer py-3 hover:bg-slate-900/80 rounded-lg transition border border-transparent hover:border-white/[0.08]">
                 <input
                   type="file"
                   accept="image/*"
@@ -259,7 +259,7 @@ export default function FuelLogsManager({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
-                className="w-full text-xs px-2 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100"
+                className="w-full text-xs px-2 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 cursor-pointer"
               />
             </div>
 
@@ -277,7 +277,7 @@ export default function FuelLogsManager({
                 value={odometer}
                 onChange={(e) => setOdometer(e.target.value)}
                 required
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100 placeholder-slate-600"
+                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
               />
             </div>
 
@@ -290,7 +290,7 @@ export default function FuelLogsManager({
                 value={fuelFilled}
                 onChange={(e) => handleFuelFilledChange(e.target.value)}
                 required
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100 placeholder-slate-600"
+                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
               />
             </div>
 
@@ -303,7 +303,7 @@ export default function FuelLogsManager({
                 value={pricePerUnit}
                 onChange={(e) => handlePriceChange(e.target.value)}
                 required
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100 placeholder-slate-600"
+                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
               />
             </div>
 
@@ -315,7 +315,7 @@ export default function FuelLogsManager({
                 placeholder="Calculated automatically"
                 value={totalCost}
                 onChange={(e) => setTotalCost(e.target.value)}
-                className="w-full text-xs px-3 py-2 bg-slate-900/50 border border-slate-800 rounded-lg text-indigo-300 font-mono"
+                className="w-full text-xs px-3 py-2 bg-slate-900/50 border border-white/[0.08] rounded-lg text-indigo-300 font-mono"
               />
             </div>
 
@@ -326,7 +326,7 @@ export default function FuelLogsManager({
                 placeholder="e.g. Shell, Motorway travel"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100 placeholder-slate-600"
+                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
               />
             </div>
           </div>
@@ -351,7 +351,7 @@ export default function FuelLogsManager({
 
       {/* Explainer tooltip info */}
       {activeVehicleLogs.length === 1 && (
-        <div className="bg-indigo-950/50 text-indigo-300 border border-indigo-500/20 rounded-2xl p-3 text-xs flex gap-2.5 items-start mb-4">
+        <div className="bg-indigo-950/30 text-indigo-300 border border-indigo-500/20 rounded-xl p-3.5 text-xs flex gap-2.5 items-start mb-4">
           <HelpCircle size={15} className="shrink-0 mt-0.5 text-indigo-400" />
           <p className="leading-relaxed">
             <strong>First entry recorded!</strong> To calculate fuel efficiency, you need to add at least <strong>one more entry</strong>. On your next refill, enter the new odometer and liters. The system will automatically compute your vehicle's Km/Liter.
@@ -360,7 +360,7 @@ export default function FuelLogsManager({
       )}
 
       {activeVehicleLogs.length === 0 ? (
-        <div className="bg-slate-950 border border-dashed border-slate-800 rounded-2xl p-8 text-center space-y-2">
+        <div className="bg-slate-950 border border-dashed border-white/[0.08] rounded-xl p-8 text-center space-y-2">
           <Calendar size={20} className="text-slate-500 mx-auto" />
           <p className="text-xs text-slate-300 font-medium">No fuel records logged yet.</p>
           <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
@@ -371,7 +371,7 @@ export default function FuelLogsManager({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-medium">
+              <tr className="border-b border-white/[0.08] text-slate-400 font-medium">
                 <th className="py-2.5 font-bold">Date</th>
                 <th className="py-2.5 font-bold text-right">Odometer</th>
                 <th className="py-2.5 font-bold text-right">Refuel</th>
@@ -380,9 +380,9 @@ export default function FuelLogsManager({
                 <th className="py-2.5"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-white/[0.04]">
               {[...activeVehicleLogs].reverse().map((log) => (
-                <tr key={log.id} className="hover:bg-slate-950/30 transition">
+                <tr key={log.id} className="hover:bg-white/[0.02] transition">
                   <td className="py-3 font-medium text-slate-200">
                     <div>{log.date}</div>
                     {log.notes && <div className="text-[10px] text-slate-500 font-normal">{log.notes}</div>}

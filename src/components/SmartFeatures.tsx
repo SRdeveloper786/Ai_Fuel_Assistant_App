@@ -264,6 +264,8 @@ export function SmartFeatures({
 
   // Theft/Leakage Monitor States
   const [parkingGuardActive, setParkingGuardActive] = useState(false);
+  const [motionData, setMotionData] = useState({ x: 0, y: 0, z: 0, maxForce: 0 });
+  const [bluetoothError, setBluetoothError] = useState<string | null>(null);
   const [fuelTheftLog, setFuelTheftLog] = useState<{ id: string; time: string; type: "leak" | "theft" | "refill" | "normal"; desc: string; amount: string }[]>([
     { id: "1", time: "July 04, 2026 11:30 PM", type: "normal", desc: "Parking Guard activated. Secure baseline established.", amount: "35.2L" },
   ]);
@@ -746,97 +748,92 @@ export function SmartFeatures({
   );
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-5">
+    <div className="bg-slate-900/60 border border-blue-500/15 rounded-2xl p-5 shadow-2xl space-y-5 relative overflow-hidden">
+      {/* Top Blue glow accent */}
+      <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-blue-500/5 blur-3xl"></div>
       
       {/* Dynamic Sub-header Navigation */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+      <div className="relative z-10 flex items-center justify-between border-b border-white/[0.08] pb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <Cpu className="text-indigo-400 w-5 h-5 animate-pulse" />
-          <h2 className="text-sm font-extrabold text-slate-100 tracking-tight uppercase">
-            ⚡ Advanced Smart Engine Suite
+          <Cpu className="text-blue-400 w-5 h-5 animate-pulse" />
+          <h2 className="text-[13px] font-semibold text-slate-100 tracking-tight uppercase">
+            Advanced Smart Engine Suite
           </h2>
           <button
             onClick={() => setShowGuidelines(!showGuidelines)}
-            className="px-2 py-0.5 text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded hover:bg-indigo-500/20 transition flex items-center gap-1 font-bold cursor-pointer"
+            className="px-2 py-0.5 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded hover:bg-blue-500/20 transition flex items-center gap-1 font-bold cursor-pointer"
           >
             <HelpCircle size={11} />
-            {showGuidelines ? "Hide User Guide" : "Show User Guide (استعمال کی رہنمائی)"}
+            {showGuidelines ? "Hide User Guide" : "Show User Guide"}
           </button>
         </div>
         
         {/* Module Switcher Buttons */}
-        <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80">
+        <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-white/[0.08]">
           <button
             onClick={() => setActiveSubTab("bento")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "bento" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "bento" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            📊 Bento Analytics
+            Bento Analytics
           </button>
           <button
             onClick={() => setActiveSubTab("obd")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "obd" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "obd" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            🔌 OBD-II Bluetooth
+            OBD-II Bluetooth
           </button>
           <button
             onClick={() => setActiveSubTab("maintenance")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "maintenance" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "maintenance" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            🔧 Maintenance
+            Maintenance
           </button>
           <button
             onClick={() => setActiveSubTab("theft")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "theft" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "theft" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            🛡️ Guard Mode
+            Guard Mode
           </button>
           <button
             onClick={() => setActiveSubTab("troubleshoot")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "troubleshoot" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "troubleshoot" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            📚 Offline Fixes
+            Offline Fixes
           </button>
-          <button
-            onClick={() => setActiveSubTab("handsfree")}
-            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "handsfree" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            🎙️ Driving HUD
-          </button>
+
           <button
             onClick={() => setActiveSubTab("budget")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "budget" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "budget" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            📊 Budget Planner
+            Budget Planner
           </button>
         </div>
       </div>
 
       {/* COLLAPSIBLE MULTILINGUAL USER TESTING GUIDELINES PANEL */}
       {showGuidelines && (
-        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/20 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-inner">
+        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950/20 border border-blue-500/15 rounded-2xl p-4 space-y-3 shadow-inner">
           <div className="flex items-center justify-between border-b border-slate-850 pb-2">
             <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <span>💡 Smart Tools Testing Guide & Guidelines</span>
               <span className="text-slate-500 font-medium font-sans">|</span>
-              <span className="text-[10px] text-indigo-400 font-bold font-sans">ان ٹولز کو استعمال کرنے کا طریقہ</span>
+              <span className="text-[10px] text-blue-400 font-bold font-sans">Instructions for Testing</span>
             </h3>
             <button
               onClick={() => setShowGuidelines(false)}
-              className="text-[10px] text-slate-500 hover:text-slate-300 font-bold transition cursor-pointer"
+              className="text-[10px] text-red-500 hover:text-red-400 font-bold transition cursor-pointer bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded hover:bg-red-500/20"
             >
               [ Dismiss Guide ]
             </button>
@@ -851,9 +848,6 @@ export function SmartFeatures({
               <p className="text-[10px] text-slate-400 leading-normal">
                 <strong>How to use:</strong> Add new fuel entries using the top form to see real-time fuel budgets and costs per KM. Use the built-in estimator card below to compute trip fuel and {currency} expenses instantly.
               </p>
-              <p className="text-[9px] text-slate-500 italic font-medium leading-normal border-t border-slate-850/40 pt-1">
-                ریفلز لاگ کریں اور نیچے موجود ایسٹیمیٹر میں سفر کا فاصلہ لکھ کر پٹرول کا خرچ دیکھیں۔
-              </p>
             </div>
 
             {/* Guide 2: OBD */}
@@ -863,9 +857,6 @@ export function SmartFeatures({
               </p>
               <p className="text-[10px] text-slate-400 leading-normal">
                 <strong>How to use:</strong> Click <strong>"Pair OBD-II Adapter"</strong> to activate simulated RPM, speed, and coolant logs. Click <strong>"Scan For Faults"</strong> to read hardware trouble codes (DTCs).
-              </p>
-              <p className="text-[9px] text-slate-500 italic font-medium leading-normal border-t border-slate-850/40 pt-1">
-                پیئر بٹن دبائیں تاکہ لائیو آر پی ایم اور اسپیڈ شروع ہو۔ پھر فالٹ اسکین کر کے انجن کوڈز معلوم کریں۔
               </p>
             </div>
 
@@ -877,9 +868,6 @@ export function SmartFeatures({
               <p className="text-[10px] text-slate-400 leading-normal">
                 <strong>How to use:</strong> Click <strong>"Update Maintenance Log"</strong> and type in the odometer reading when you last changed engine oil, spark plugs, brakes, or tyres to compute exact live wear status.
               </p>
-              <p className="text-[9px] text-slate-500 italic font-medium leading-normal border-t border-slate-850/40 pt-1">
-                "Update Maintenance Log" پر کلک کر کے اپنی پچھلی سروس کلومیٹر لکھیں تاکہ پارٹس کی لائف معلوم ہو۔
-              </p>
             </div>
 
             {/* Guide 4: Guard Mode */}
@@ -890,9 +878,6 @@ export function SmartFeatures({
               <p className="text-[10px] text-slate-400 leading-normal">
                 <strong>How to use:</strong> Toggle <strong>"Armed & Guarding"</strong>. Every 8 seconds, background threads simulate float level readings and alert you instantly with alerts if any fuel drop is detected.
               </p>
-              <p className="text-[9px] text-slate-500 italic font-medium leading-normal border-t border-slate-850/40 pt-1">
-                اسے آن کر کے چھوڑ دیں۔ گاری کھڑی ہونے پر پٹرول چوری یا پائپ لیک ہونے کی صورت میں الارم بجے گا۔
-              </p>
             </div>
 
             {/* Guide 5: Offline Fixes */}
@@ -901,25 +886,11 @@ export function SmartFeatures({
                 <span>📚</span> Offline Troubleshooting
               </p>
               <p className="text-[10px] text-slate-400 leading-normal">
-                <strong>How to use:</strong> Use the search bar to find emergency advice. Type words like <strong>"overheat"</strong>, <strong>"smoke"</strong> (kala dhuan), or <strong>"vibrating"</strong> (kampna) for instant solutions.
-              </p>
-              <p className="text-[9px] text-slate-500 italic font-medium leading-normal border-t border-slate-850/40 pt-1">
-                سرچ بار میں مسلے کا نام لکھیں (جیسے دھواں یا اوور ہیٹ) تاکہ اردو اور انگلش میں حل مل سکے۔
+                <strong>How to use:</strong> Use the search bar to find emergency advice. Type words like <strong>"overheat"</strong>, <strong>"smoke"</strong>, or <strong>"vibrating"</strong> for instant solutions.
               </p>
             </div>
 
-            {/* Guide 6: Driving HUD */}
-            <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-850 space-y-1">
-              <p className="text-[11px] font-bold text-slate-200 flex items-center gap-1">
-                <span>🎙️</span> Hands-Free Driving HUD
-              </p>
-              <p className="text-[10px] text-slate-400 leading-normal">
-                <strong>How to use:</strong> Pick your speaking language (English or Hindi). Click the Microphone button, grant browser mic permissions, and say: <strong>"hello"</strong>, <strong>"status"</strong>, <strong>"faults"</strong>, or <strong>"average"</strong>.
-              </p>
-              <p className="text-[9px] text-slate-500 italic font-medium leading-normal border-t border-slate-850/40 pt-1">
-                अपनी भाषा चुनें, माइक ऑन करके बोलें: "status", "faults", या "average".
-              </p>
-            </div>
+
           </div>
         </div>
       )}
@@ -931,7 +902,7 @@ export function SmartFeatures({
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* Bento Cell 1: Budget Health */}
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between relative overflow-hidden h-[135px]">
+            <div className="bg-gradient-to-br from-indigo-950/40 via-slate-950 to-slate-950 p-4 rounded-2xl border border-indigo-500/20 flex flex-col justify-between relative overflow-hidden h-[135px] shadow-[0_8px_30px_rgba(99,102,241,0.06)]">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Refill Budget</span>
                 <DollarSign size={15} className="text-indigo-400" />
@@ -949,7 +920,7 @@ export function SmartFeatures({
             </div>
 
             {/* Bento Cell 2: Cost Per Kilometer */}
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between h-[135px]">
+            <div className="bg-gradient-to-br from-emerald-950/40 via-slate-950 to-slate-950 p-4 rounded-2xl border border-emerald-500/20 flex flex-col justify-between relative overflow-hidden h-[135px] shadow-[0_8px_30px_rgba(16,185,129,0.06)]">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cost Efficiency</span>
                 <TrendingUp size={15} className="text-emerald-400" />
@@ -968,7 +939,7 @@ export function SmartFeatures({
             </div>
 
             {/* Bento Cell 3: Live Fuel Stats */}
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between h-[135px]">
+            <div className="bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-950 p-4 rounded-2xl border border-amber-500/20 flex flex-col justify-between relative overflow-hidden h-[135px] shadow-[0_8px_30px_rgba(245,158,11,0.06)]">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telemetry Vol.</span>
                 <Activity size={15} className="text-amber-400 animate-pulse" />
@@ -1056,28 +1027,28 @@ export function SmartFeatures({
             {obdConnected ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-850 text-center">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">Engine Speed</p>
+                  <div className="bg-gradient-to-br from-indigo-950/25 via-slate-900 to-slate-950 p-3 rounded-xl border border-indigo-500/25 text-center shadow-[0_4px_12px_rgba(99,102,241,0.05)]">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Engine Speed</p>
                     <p className="text-sm font-black text-indigo-400 mt-1 font-mono">{obdData.rpm} RPM</p>
                   </div>
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-850 text-center">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">Coolant Temp</p>
-                    <p className="text-sm font-black text-amber-400 mt-1 font-mono">{obdData.temp}°C</p>
+                  <div className="bg-gradient-to-br from-orange-950/25 via-slate-900 to-slate-950 p-3 rounded-xl border border-orange-500/25 text-center shadow-[0_4px_12px_rgba(249,115,22,0.05)]">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Coolant Temp</p>
+                    <p className="text-sm font-black text-orange-400 mt-1 font-mono">{obdData.temp}°C</p>
                   </div>
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-850 text-center">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">Vehicle Speed</p>
+                  <div className="bg-gradient-to-br from-emerald-950/25 via-slate-900 to-slate-950 p-3 rounded-xl border border-emerald-500/25 text-center shadow-[0_4px_12px_rgba(16,185,129,0.05)]">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Vehicle Speed</p>
                     <p className="text-sm font-black text-emerald-400 mt-1 font-mono">{obdData.speed} km/h</p>
                   </div>
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-850 text-center">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">Throttle pos.</p>
-                    <p className="text-sm font-black text-slate-200 mt-1 font-mono">{obdData.throttle}%</p>
+                  <div className="bg-gradient-to-br from-yellow-950/25 via-slate-900 to-slate-950 p-3 rounded-xl border border-yellow-500/25 text-center shadow-[0_4px_12px_rgba(234,179,8,0.05)]">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Throttle pos.</p>
+                    <p className="text-sm font-black text-yellow-400 mt-1 font-mono">{obdData.throttle}%</p>
                   </div>
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-850 text-center">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">Oxygen Sensor</p>
+                  <div className="bg-gradient-to-br from-sky-950/25 via-slate-900 to-slate-950 p-3 rounded-xl border border-sky-500/25 text-center shadow-[0_4px_12px_rgba(14,165,233,0.05)]">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Oxygen Sensor</p>
                     <p className="text-sm font-black text-sky-400 mt-1 font-mono">{obdData.o2Sensor} V</p>
                   </div>
-                  <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-850 text-center">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">Battery Voltage</p>
+                  <div className="bg-gradient-to-br from-pink-950/25 via-slate-900 to-slate-950 p-3 rounded-xl border border-pink-500/25 text-center shadow-[0_4px_12px_rgba(236,72,153,0.05)]">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Battery Voltage</p>
                     <p className="text-sm font-black text-pink-400 mt-1 font-mono">{obdData.voltage} V</p>
                   </div>
                 </div>
@@ -1225,7 +1196,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      oilWear > 80 ? "bg-red-500" : oilWear > 60 ? "bg-amber-500" : "bg-indigo-500"
+                      oilWear > 80 ? "bg-red-500" : oilWear > 60 ? "bg-amber-500" : "bg-blue-500"
                     }`}
                     style={{ width: `${oilWear}%` }}
                   ></div>
@@ -1248,7 +1219,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      plugsWear > 80 ? "bg-red-500" : plugsWear > 60 ? "bg-amber-500" : "bg-indigo-500"
+                      plugsWear > 80 ? "bg-red-500" : plugsWear > 60 ? "bg-amber-500" : "bg-blue-500"
                     }`}
                     style={{ width: `${plugsWear}%` }}
                   ></div>
@@ -1271,7 +1242,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      brakesWear > 80 ? "bg-red-500" : brakesWear > 60 ? "bg-amber-500" : "bg-indigo-500"
+                      brakesWear > 80 ? "bg-red-500" : brakesWear > 60 ? "bg-amber-500" : "bg-blue-500"
                     }`}
                     style={{ width: `${brakesWear}%` }}
                   ></div>
@@ -1294,7 +1265,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      tyresWear > 80 ? "bg-red-500" : tyresWear > 60 ? "bg-amber-500" : "bg-indigo-500"
+                      tyresWear > 80 ? "bg-red-500" : tyresWear > 60 ? "bg-amber-500" : "bg-blue-500"
                     }`}
                     style={{ width: `${tyresWear}%` }}
                   ></div>
@@ -1509,112 +1480,7 @@ export function SmartFeatures({
         </div>
       )}
 
-      {/* 6. VOICE-BASED "HANDS-FREE" DRIVING HUD MODE */}
-      {activeSubTab === "handsfree" && (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 p-5 rounded-3xl border border-indigo-500/20 space-y-4 text-center">
-            
-            {/* HUD Dashboard */}
-            <div className="flex items-center justify-around p-4 bg-slate-950/70 rounded-2xl border border-slate-800/80">
-              <div>
-                <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Active Vehicle</p>
-                <p className="text-xs font-extrabold text-slate-300 mt-0.5">{activeVehicle?.name || "No Gari Set"}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[9px] text-indigo-400 uppercase font-bold tracking-widest animate-pulse">Telemetry Speed</p>
-                <p className="text-2xl font-black text-slate-100 tracking-tight font-mono">
-                  {obdConnected ? obdData.speed : "0"} <span className="text-xs text-slate-400 font-bold">km/h</span>
-                </p>
-              </div>
-              <div>
-                <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Estimated range</p>
-                <p className="text-xs font-extrabold text-emerald-400 mt-0.5">
-                  {calculatedAverageMileage > 0 ? `${Math.round(calculatedAverageMileage * 35)} km` : "No Data"}
-                </p>
-              </div>
-            </div>
 
-            {/* Voice Command Language Selector */}
-            <div className="flex items-center justify-between p-3.5 bg-slate-950/50 rounded-2xl border border-slate-800/80 text-left flex-wrap gap-2">
-              <div>
-                <span className="text-[10px] text-indigo-400 font-black uppercase tracking-wide block">Speech Language</span>
-                <span className="text-xs text-slate-300 font-bold">भाषा चुनें / Choose Language</span>
-              </div>
-              <div className="flex gap-1.5 flex-wrap">
-                {(["en", "hi"] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => {
-                      setDrivingHubLang(lang);
-                      // Auto speak greeting in chosen language
-                      let greet = "Language set to English";
-                      if (lang === "hi") greet = "भाषा हिंदी पर सेट कर दी गई है";
-                      setSpeechOutput(greet);
-                      speakVoice(greet, lang);
-                    }}
-                    className={`px-3 py-1.5 text-[11px] font-extrabold rounded-xl uppercase transition-all cursor-pointer ${
-                      drivingHubLang === lang
-                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
-                        : "bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850"
-                    }`}
-                  >
-                    {lang === "en" ? "English" : "हिंदी"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Hands-Free Button */}
-            <div className="flex flex-col items-center justify-center py-2 space-y-3">
-              <button
-                onClick={() => setHandsFreeActive(!handsFreeActive)}
-                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer shadow-lg relative ${
-                  handsFreeActive
-                    ? "bg-red-500 text-white shadow-red-500/20 scale-105"
-                    : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-500/20"
-                }`}
-              >
-                {handsFreeActive && (
-                  <span className="absolute -inset-2.5 rounded-full border border-red-500/30 animate-ping"></span>
-                )}
-                {handsFreeActive ? <MicOff size={24} /> : <Mic size={24} />}
-              </button>
-              
-              <div>
-                <p className="text-xs font-bold text-slate-200">
-                  {handsFreeActive ? "Hands-Free Driving Mode Active" : "Activate Hands-Free Driving Mode"}
-                </p>
-                <p className="text-[10px] text-slate-500 mt-1 max-w-sm mx-auto leading-normal">
-                  Microphone will listen continuously. Speak clearly to check metrics or DTC safety faults while keeping hands on the wheel.
-                </p>
-              </div>
-            </div>
-
-            {/* Active Output Feedback Terminal */}
-            <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-left space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Co-Pilot Audio Terminal</span>
-                {voiceCommandActive && (
-                  <span className="text-[9px] text-emerald-400 font-semibold animate-pulse uppercase flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Listening for voice...
-                  </span>
-                )}
-              </div>
-
-              {heardCommand && (
-                <p className="text-[10px] text-indigo-400 font-mono font-medium">
-                  <span className="text-slate-500 uppercase font-bold text-[8px] mr-1">Heard Command:</span> "{heardCommand}"
-                </p>
-              )}
-
-              <p className="text-xs text-slate-300 font-semibold leading-relaxed">
-                {speechOutput || "Ready. Tap the microphone to speak voice-guided commands like: 'Hello assistant', 'check car status', or 'average mileage'."}
-              </p>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* 7. SMART BUDGET PLANNER & REAL-TIME ALERT SYSTEM */}
       {activeSubTab === "budget" && (

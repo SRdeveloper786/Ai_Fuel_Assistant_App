@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Vehicle, VehicleType, FuelType, OdometerUnit } from "../types";
-import { Plus, Car, Trash2, CheckCircle2, Gauge, Zap, Flame, Info } from "lucide-react";
+import { Plus, Car, Bike, Truck, HelpCircle, Trash2, Gauge, Flame, Info, Sparkles } from "lucide-react";
 
 interface VehicleManagerProps {
   vehicles: Vehicle[];
@@ -12,10 +12,10 @@ interface VehicleManagerProps {
 
 const VEHICLE_ICONS: Record<VehicleType, any> = {
   Car: Car,
-  Motorcycle: Car, // we can render customized icon or use standard
-  "Rickshaw/Auto": Car,
-  "Truck/Van": Car,
-  Other: Car,
+  Motorcycle: Bike,
+  "Rickshaw/Auto": Car, // fallback to Car
+  "Truck/Van": Truck,
+  Other: HelpCircle,
 };
 
 export default function VehicleManager({
@@ -53,16 +53,16 @@ export default function VehicleManager({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800/80 rounded-3xl p-5 shadow-xl">
+    <div className="bg-slate-900/60 border border-white/[0.08] rounded-2xl p-5 shadow-xl">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Vehicles Profile</h2>
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-400">Vehicles Profile</h2>
           <p className="text-xs text-slate-500">Manage your active fleet</p>
         </div>
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-lg shadow-indigo-600/10 cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-lg shadow-indigo-600/10 cursor-pointer"
           >
             <Plus size={14} /> Add Vehicle
           </button>
@@ -70,7 +70,7 @@ export default function VehicleManager({
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-4 space-y-3 transition">
+        <form onSubmit={handleSubmit} className="bg-slate-950/60 border border-white/[0.06] rounded-xl p-4 mb-4 space-y-3 transition">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">New Vehicle Profile</h3>
           
           <div className="grid grid-cols-2 gap-3">
@@ -82,7 +82,7 @@ export default function VehicleManager({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100"
+                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100"
               />
             </div>
 
@@ -91,13 +91,13 @@ export default function VehicleManager({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as VehicleType)}
-                className="w-full text-xs px-2 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100"
+                className="w-full text-xs px-2 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 cursor-pointer"
               >
-                <option value="Car" className="bg-slate-900">🚗 Car</option>
-                <option value="Motorcycle" className="bg-slate-900">🏍️ Motorcycle</option>
-                <option value="Rickshaw/Auto" className="bg-slate-900">🛺 Rickshaw/Auto</option>
-                <option value="Truck/Van" className="bg-slate-900">🚚 Truck/Van</option>
-                <option value="Other" className="bg-slate-900">⚙️ Other</option>
+                <option value="Car" className="bg-slate-900">Car</option>
+                <option value="Motorcycle" className="bg-slate-900">Motorcycle</option>
+                <option value="Rickshaw/Auto" className="bg-slate-900">Rickshaw/Auto</option>
+                <option value="Truck/Van" className="bg-slate-900">Truck/Van</option>
+                <option value="Other" className="bg-slate-900">Other</option>
               </select>
             </div>
 
@@ -106,7 +106,7 @@ export default function VehicleManager({
               <select
                 value={fuelType}
                 onChange={(e) => setFuelType(e.target.value as FuelType)}
-                className="w-full text-xs px-2 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100"
+                className="w-full text-xs px-2 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 cursor-pointer"
               >
                 <option value="Petrol" className="bg-slate-900">Petrol</option>
                 <option value="Diesel" className="bg-slate-900">Diesel</option>
@@ -123,7 +123,7 @@ export default function VehicleManager({
                 placeholder="e.g. 1300cc, 70cc"
                 value={engineSize}
                 onChange={(e) => setEngineSize(e.target.value)}
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100"
+                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100"
               />
             </div>
 
@@ -132,7 +132,7 @@ export default function VehicleManager({
               <select
                 value={odometerUnit}
                 onChange={(e) => setOdometerUnit(e.target.value as OdometerUnit)}
-                className="w-full text-xs px-2 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-indigo-500/50 text-slate-100"
+                className="w-full text-xs px-2 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 cursor-pointer"
               >
                 <option value="Km" className="bg-slate-900">Kilometers (Km)</option>
                 <option value="Miles" className="bg-slate-900">Miles</option>
@@ -159,7 +159,7 @@ export default function VehicleManager({
       )}
 
       {vehicles.length === 0 ? (
-        <div className="bg-slate-950 border border-dashed border-slate-800 rounded-2xl p-6 text-center space-y-2">
+        <div className="bg-slate-950 border border-dashed border-white/[0.08] rounded-xl p-6 text-center space-y-2">
           <Info size={18} className="text-slate-500 mx-auto" />
           <p className="text-xs text-slate-300 font-medium">No vehicles registered yet.</p>
           <p className="text-[11px] text-slate-500">Please add a vehicle profile to calculate correct fuel efficiency average.</p>
@@ -168,21 +168,20 @@ export default function VehicleManager({
         <div className="space-y-2">
           {vehicles.map((v) => {
             const isActive = v.id === activeVehicleId;
+            const IconComponent = VEHICLE_ICONS[v.type] || Car;
             return (
               <div
                 key={v.id}
                 onClick={() => onSelectVehicle(v.id)}
-                className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
+                className={`p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between ${
                   isActive
                     ? "bg-indigo-600/10 border-indigo-500/40 hover:bg-indigo-600/15"
-                    : "bg-slate-950 hover:bg-slate-900/50 border-slate-800/60"
+                    : "bg-slate-950/40 hover:bg-slate-900/40 border-white/[0.06]"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${isActive ? "bg-indigo-600/20 text-indigo-400" : "bg-slate-900 text-slate-400"}`}>
-                    <span className="text-sm">
-                      {v.type === "Motorcycle" ? "🏍️" : v.type === "Rickshaw/Auto" ? "🛺" : v.type === "Truck/Van" ? "🚚" : "🚗"}
-                    </span>
+                    <IconComponent size={16} />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
@@ -194,11 +193,11 @@ export default function VehicleManager({
                       )}
                     </h4>
                     <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400 font-medium">
-                      <span className="flex items-center gap-0.5">
+                      <span className="flex items-center gap-1">
                         <Flame size={10} className="text-orange-400" /> {v.fuelType}
                       </span>
                       <span>•</span>
-                      <span className="flex items-center gap-0.5">
+                      <span className="flex items-center gap-1">
                         <Gauge size={10} className="text-slate-500" /> {v.engineSize}
                       </span>
                       <span>•</span>

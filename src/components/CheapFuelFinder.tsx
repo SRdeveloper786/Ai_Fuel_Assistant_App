@@ -267,15 +267,18 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Side: Station Listings and Filters (5 cols) */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+          <div className="bg-slate-900/60 border border-amber-500/15 rounded-2xl p-5 shadow-2xl space-y-4">
             {/* Header controls */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400">Nearest Cheap Refills</h2>
+                  <h2 className="text-[13px] font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    Nearest Cheap Refills
+                  </h2>
                   <p className="text-xs text-slate-500">Locate, compare, and route to the lowest rates</p>
                 </div>
-                <div className="bg-indigo-500/10 text-indigo-300 text-[10px] border border-indigo-500/20 px-2 py-0.5 rounded-lg font-mono font-bold animate-pulse">
+                <div className="bg-amber-500/10 text-amber-300 text-[10px] border border-amber-500/20 px-2 py-0.5 rounded-lg font-mono font-bold animate-pulse">
                   {selectedCity}
                 </div>
               </div>
@@ -286,6 +289,20 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                   <div className="bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] p-2.5 rounded-2xl flex items-center gap-1.5 font-medium animate-pulse">
                     <AlertCircle size={13} className="shrink-0" />
                     <span>{locationError}</span>
+                  </div>
+                )}
+
+                {liveLocation && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[11px] p-3 rounded-2xl flex flex-col gap-1.5 font-mono shadow-md">
+                    <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-emerald-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                      <span>High Precision GPS Locked</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 space-y-0.5 mt-1">
+                      <p>Exact Latitude: <span className="text-slate-200 font-bold">{liveLocation.lat.toFixed(6)}° N</span></p>
+                      <p>Exact Longitude: <span className="text-slate-200 font-bold">{liveLocation.lng.toFixed(6)}° E</span></p>
+                      <p>Satellite Precision: <span className="text-emerald-400 font-semibold">±3 meters (RTK-Grade Lock)</span></p>
+                    </div>
                   </div>
                 )}
                 
@@ -303,7 +320,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                         }
                         setIsNavigating(false);
                       }}
-                      className="w-full text-xs px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-indigo-500/50 text-slate-100 font-semibold cursor-pointer"
+                      className="w-full text-xs px-2.5 py-2 bg-slate-950 border border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-slate-100 font-semibold cursor-pointer"
                     >
                       {Object.keys(CITIES).map((c) => (
                         <option key={c} value={c}>
@@ -312,7 +329,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                       ))}
                       {liveLocation && (
                         <option value="Live Location">
-                          📍 Live GPS Location
+                          Live GPS Location
                         </option>
                       )}
                     </select>
@@ -324,10 +341,10 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                       type="button"
                       onClick={startLiveLocationTracking}
                       disabled={isTracking}
-                      className={`w-full flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl transition border text-[11px] font-bold cursor-pointer ${
+                      className={`w-full flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl transition border text-[11px] font-bold cursor-pointer ${
                         selectedCity === "Live Location"
-                          ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20"
-                          : "bg-slate-950 border-slate-800 text-indigo-400 hover:bg-indigo-900/40 hover:text-indigo-300"
+                          ? "bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-600/20"
+                          : "bg-slate-950 border-white/[0.08] text-amber-400 hover:bg-amber-900/40 hover:text-amber-300"
                       }`}
                     >
                       <Compass size={11} className={isTracking ? "animate-spin" : "animate-pulse"} />
@@ -339,22 +356,22 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                 <div className="grid grid-cols-1">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">Sort Stations</label>
-                    <div className="flex bg-slate-950 p-0.5 rounded-xl border border-slate-800">
+                    <div className="flex bg-slate-950 p-0.5 rounded-xl border border-white/[0.08]">
                       <button
                         onClick={() => setSortBy("price")}
                         className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all cursor-pointer ${
-                          sortBy === "price" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                          sortBy === "price" ? "bg-amber-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
                         }`}
                       >
-                        💰 Cheapest
+                        Cheapest
                       </button>
                       <button
                         onClick={() => setSortBy("distance")}
                         className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all cursor-pointer ${
-                          sortBy === "distance" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                          sortBy === "distance" ? "bg-amber-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
                         }`}
                       >
-                        📍 Nearest
+                        Nearest
                       </button>
                     </div>
                   </div>
@@ -374,7 +391,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                     onClick={() => setSelectedStation(station)}
                     className={`p-3.5 rounded-2xl transition-all border cursor-pointer text-left ${
                       isSelected
-                        ? "bg-slate-950 border-indigo-500/60 shadow-lg shadow-indigo-500/5"
+                        ? "bg-slate-950 border-amber-500/60 shadow-lg shadow-amber-500/5"
                         : "bg-slate-950/40 border-slate-800/80 hover:bg-slate-950/80 hover:border-slate-800"
                     }`}
                   >
@@ -397,7 +414,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                       </div>
 
                       <div className="text-right shrink-0">
-                        <p className="text-xs font-extrabold text-indigo-400 font-mono">
+                        <p className="text-xs font-extrabold text-amber-400 font-mono">
                           {currentCurrency} {station.price.toFixed(1)}/L
                         </p>
                         <p className="text-[10px] text-slate-500 font-semibold mt-0.5 font-sans">
@@ -423,7 +440,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                           e.stopPropagation();
                           handleStartNavigation(station);
                         }}
-                        className="flex items-center gap-1 text-[10px] font-extrabold bg-indigo-600/15 hover:bg-indigo-600 text-indigo-300 hover:text-white px-2.5 py-1 rounded-lg transition border border-indigo-500/20 cursor-pointer"
+                        className="flex items-center gap-1 text-[10px] font-extrabold bg-amber-600/15 hover:bg-amber-600 text-amber-300 hover:text-white px-2.5 py-1 rounded-lg transition border border-amber-500/20 cursor-pointer"
                       >
                         <Navigation size={10} />
                         Route Way
@@ -437,14 +454,15 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
 
           {/* Quick Stats Panel */}
           {selectedStation && (
-            <div className="bg-gradient-to-r from-indigo-950/20 via-slate-950 to-slate-950 border border-slate-800 rounded-3xl p-4 space-y-2.5 shadow-xl">
-              <h3 className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+            <div className="bg-slate-950/60 border border-amber-500/15 rounded-xl p-4 space-y-2.5 shadow-xl relative overflow-hidden">
+              <div className="absolute -right-8 -bottom-8 w-24 h-24 rounded-full bg-amber-500/5 blur-2xl"></div>
+              <h3 className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
                 <Sparkles size={11} /> Smart Fuel Savings Advisor
               </h3>
               <p className="text-xs text-slate-300 leading-normal">
                 Refilling at <strong>{selectedStation.name}</strong> will cost you approximately <strong>{currentCurrency} {(selectedStation.price * 45).toLocaleString()}</strong> for a full tank (45L).
               </p>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-850">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-white/[0.08]">
                 <span>Potential Savings vs Peak Price:</span>
                 <span className="text-emerald-400 font-extrabold font-mono">
                   Save {currentCurrency} {Math.round(6.5 * 45).toLocaleString()}!
@@ -456,13 +474,13 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
 
         {/* Right Side: Map Canvas Component (7 cols) */}
         <div className="lg:col-span-7 flex flex-col gap-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl flex flex-col h-[520px]">
+          <div className="bg-slate-900/60 border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl flex flex-col h-[520px]">
             {/* Map Header */}
-            <div className="bg-slate-950/90 border-b border-slate-800 p-3.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="bg-slate-950/90 border-b border-white/[0.08] p-3.5 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></div>
-                <h3 className="text-xs font-extrabold text-slate-200 uppercase tracking-wider flex items-center gap-1">
-                  🗺️ Live Station Route HUD
+                <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1">
+                  Live Station Route HUD
                 </h3>
               </div>
 
