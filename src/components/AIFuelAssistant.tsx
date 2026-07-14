@@ -1110,7 +1110,7 @@ export default function AIFuelAssistant({
             odometer: l.odometer,
             fuelFilled: l.fuelFilled,
             totalCost: l.totalCost,
-            mileage: l.mileage,
+            efficiency: l.efficiency,
           })),
       };
 
@@ -1179,7 +1179,7 @@ export default function AIFuelAssistant({
             <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
               <span className="text-green-400 animate-pulse">System Online</span>
               <span className="text-slate-700">•</span>
-              <span className="text-violet-400">Gemini 1.5 Flash</span>
+              <span className="text-violet-400">Gemini 3.5 Flash</span>
             </div>
           </div>
         </div>

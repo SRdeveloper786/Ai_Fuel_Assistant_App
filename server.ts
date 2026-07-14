@@ -324,9 +324,9 @@ Your goals:
 
 ${activeDirective}
 
-ANTI-REPETITION, SPEED & TERMINOLOGY DIRECTIVES (CRITICAL):
+ANTI-REPETITION, SPEED & TERMINOLOGY DIRECTIVES (CRITICAL FOR INSTANT RESPONSES):
 - NEVER repeat previous replies, sentences, or greetings. Use highly variable, creative, and distinct responses every time!
-- Keep replies extremely concise, clear, and direct (max 2-3 short sentences) for INSTANT (<5s) responses.
+- Keep replies extremely short, direct, and concise (maximum 1 to 2 short sentences). No long preambles, no unnecessary pleasantries, and no verbose lists. Maximize generation speed by giving a punchy, instant answer!
 - ALWAYS use "efficiency" instead of "mileage" in all text/speech.
 
 SPEECH SYNTHESIS & VOICE COMMAND TRAINING DIRECTIVE:
@@ -375,7 +375,7 @@ Explain calculations clearly: (Ending Odometer - Starting Odometer) / Liters. Ke
           required: ["reply", "speechText"]
         },
         thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW
+          thinkingLevel: ThinkingLevel.MINIMAL
         }
       },
     });
@@ -469,7 +469,7 @@ Fields to extract:
           required: ["date", "totalCost", "fuelFilled", "pricePerUnit"],
         },
         thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW
+          thinkingLevel: ThinkingLevel.MINIMAL
         }
       },
     });

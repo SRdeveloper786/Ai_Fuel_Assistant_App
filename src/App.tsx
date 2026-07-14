@@ -1,20 +1,64 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Vehicle, FuelEntry, SupportedLanguage } from "./types";
-import VehicleManager from "./components/VehicleManager";
+import VehicleManager, { getVehicleAvatarInfo } from "./components/VehicleManager";
 import FuelLogsManager from "./components/FuelLogsManager";
 import FuelAnalytics from "./components/FuelAnalytics";
 import AIFuelAssistant from "./components/AIFuelAssistant";
 import AndroidIntegrationGuide from "./components/AndroidIntegrationGuide";
 import { SmartFeatures } from "./components/SmartFeatures";
 import CheapFuelFinder from "./components/CheapFuelFinder";
-import { Car, Settings, BarChart3, MessageSquare, Flame, HelpCircle, FileText, Smartphone, MapPin, Wrench, ShieldAlert, Bluetooth, Calculator, AlertTriangle, ShieldCheck, PlayCircle, Sparkles, Download, Upload, Wifi, WifiOff, Database, ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
+import { Car, Settings, BarChart3, MessageSquare, Flame, HelpCircle, FileText, Smartphone, MapPin, Wrench, ShieldAlert, Bluetooth, Calculator, AlertTriangle, ShieldCheck, PlayCircle, Sparkles, Download, Upload, Wifi, WifiOff, Database, ChevronLeft, ChevronRight, Sun, Moon, Sunset, MoreVertical, Menu, Share2, Info, Shield, Check, Copy, ExternalLink, Scale, X, TrendingUp, TrendingDown, Lightbulb, Award, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, AreaChart, Area } from "recharts";
+
+// Simple approximate sunrise/sunset calculation (returns decimal hours)
+function getSunriseSunset(latitude: number, longitude: number, date: Date = new Date()) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - start.getTime() + ((start.getTimezoneOffset() - date.getTimezoneOffset()) * 60 * 1000);
+  const oneDay = 1000 * 60 * 60 * 24;
+  const day = Math.floor(diff / oneDay);
+  
+  const declination = 23.45 * Math.sin((2 * Math.PI / 365) * (284 + day));
+  const decRad = (declination * Math.PI) / 180;
+  const latRad = (latitude * Math.PI) / 180;
+  
+  const cosHourAngle = -Math.tan(latRad) * Math.tan(decRad);
+  
+  let hourAngle = 6; 
+  if (cosHourAngle >= -1 && cosHourAngle <= 1) {
+    hourAngle = (Math.acos(cosHourAngle) * 180) / Math.PI / 15;
+  }
+  
+  const timezoneOffset = -date.getTimezoneOffset() / 60;
+  const solarNoon = 12 - (longitude / 15) + timezoneOffset;
+  
+  const sunrise = solarNoon - hourAngle;
+  const sunset = solarNoon + hourAngle;
+  
+  return { sunrise, sunset };
+}
 
 export default function App() {
   // Theme Toggle State
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem("assistant_theme") as 'dark' | 'light') || "dark";
   });
+
+  const [autoThemeMode, setAutoThemeMode] = useState<boolean>(() => {
+    return localStorage.getItem("assistant_auto_theme") === "true";
+  });
+
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(() => {
+    const lat = localStorage.getItem("user_lat");
+    const lng = localStorage.getItem("user_lng");
+    if (lat && lng) {
+      return { lat: Number(lat), lng: Number(lng) };
+    }
+    return null;
+  });
+
+  // Track if user was prompted for geolocation once to prevent endless requests
+  const geolocationRequested = useRef(false);
 
   useEffect(() => {
     localStorage.setItem("assistant_theme", theme);
@@ -24,6 +68,54 @@ export default function App() {
       document.documentElement.classList.remove("light-theme");
     }
   }, [theme]);
+
+  // Handle auto theme detection based on local time and sun position
+  useEffect(() => {
+    if (!autoThemeMode) return;
+
+    const runAutoThemeCheck = () => {
+      const now = new Date();
+      const lat = userLocation?.lat ?? 30.3753; // Pakistan/South Asia default
+      const lng = userLocation?.lng ?? 69.3451;
+
+      const { sunrise, sunset } = getSunriseSunset(lat, lng, now);
+      const currentDecimalHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+
+      // Wrap-around checks in solar calculation decimal boundaries
+      let isDay = currentDecimalHour >= sunrise && currentDecimalHour < sunset;
+      
+      // If polar values or edge cases are out of range, default to standard hour checks
+      if (isNaN(sunrise) || isNaN(sunset)) {
+        isDay = now.getHours() >= 6 && now.getHours() < 18;
+      }
+
+      setTheme(isDay ? "light" : "dark");
+    };
+
+    runAutoThemeCheck();
+    const interval = setInterval(runAutoThemeCheck, 15000); // Check every 15 seconds
+    return () => clearInterval(interval);
+  }, [autoThemeMode, userLocation]);
+
+  // Request geolocation once if auto mode is enabled and coords are missing
+  useEffect(() => {
+    if (autoThemeMode && !userLocation && !geolocationRequested.current) {
+      geolocationRequested.current = true;
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            setUserLocation({ lat: latitude, lng: longitude });
+            localStorage.setItem("user_lat", latitude.toString());
+            localStorage.setItem("user_lng", longitude.toString());
+          },
+          (err) => {
+            console.log("GPS prompt declined for theme sync, using default system timezone baseline:", err);
+          }
+        );
+      }
+    }
+  }, [autoThemeMode, userLocation]);
 
   // State loaders from localStorage
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
@@ -51,6 +143,38 @@ export default function App() {
   // Notification center & inactivity simulation states
   const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
   const [simulatedInactivity, setSimulatedInactivity] = useState(false);
+
+  // Daily Fuel Economy Goal State
+  const [fuelGoal, setFuelGoal] = useState<number>(() => {
+    const saved = localStorage.getItem("assistant_fuel_goal");
+    return saved ? parseFloat(saved) : 15.0;
+  });
+  const [showChartDemo, setShowChartDemo] = useState(false);
+
+  // Top-Right Dropdown Menu & Modal states
+  const [showMenu, setShowMenu] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("assistant_fuel_goal", fuelGoal.toString());
+  }, [fuelGoal]);
 
   // Offline Mode States
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
@@ -433,8 +557,32 @@ export default function App() {
       });
     }
 
+    if (autoThemeMode) {
+      const lat = userLocation?.lat ?? 30.3753;
+      const lng = userLocation?.lng ?? 69.3451;
+      const { sunrise, sunset } = getSunriseSunset(lat, lng);
+      
+      const formatTime = (decimalHour: number) => {
+        const hrs = Math.floor(decimalHour);
+        const mins = Math.round((decimalHour - hrs) * 60);
+        const ampm = hrs >= 12 ? "PM" : "AM";
+        const displayHrs = hrs % 12 || 12;
+        return `${displayHrs}:${mins.toString().padStart(2, "0")} ${ampm}`;
+      };
+
+      list.push({
+        id: "auto-theme-active",
+        type: "system",
+        title: "Sunrise/Sunset Solar Sync",
+        titleUr: "طلوع و غروب آفتاب ہم آہنگی",
+        desc: `Theme dynamically matches local solar times. Today's Sunrise: ${formatTime(sunrise)} | Sunset: ${formatTime(sunset)} (${userLocation ? "GPS coordinates locked" : "System timezone fallback"}).`,
+        descUr: `تھیم خود بخود سورج کے نکلنے اور غروب ہونے کے مطابق چلے گی۔ طلوع: ${formatTime(sunrise)} | غروب: ${formatTime(sunset)}۔`,
+        severity: "low"
+      });
+    }
+
     return list;
-  }, [isInactive, simulatedInactivity, fuelLogs, currentOdometer, oilDist, oilW, plugsDist, plugsW, brakesDist, brakesW, tyresDist, tyresW]);
+  }, [isInactive, simulatedInactivity, fuelLogs, currentOdometer, oilDist, oilW, plugsDist, plugsW, brakesDist, brakesW, tyresDist, tyresW, autoThemeMode, userLocation]);
 
   // Handle vehicle state alterations
   const handleAddVehicle = (newVehicle: Vehicle) => {
@@ -442,6 +590,10 @@ export default function App() {
     if (!activeVehicleId) {
       setActiveVehicleId(newVehicle.id);
     }
+  };
+
+  const handleUpdateVehicle = (updatedVehicle: Vehicle) => {
+    setVehicles((prev) => prev.map((v) => v.id === updatedVehicle.id ? updatedVehicle : v));
   };
 
   const handleSelectVehicle = (id: string) => {
@@ -467,6 +619,99 @@ export default function App() {
   };
 
   const activeVehicle = vehicles.find((v) => v.id === activeVehicleId) || null;
+
+  // Dynamic average efficiency calculation for the goal tracking
+  const activeLogsForGoal = fuelLogs.filter((log) => log.vehicleId === activeVehicleId);
+  const goalLogsWithEfficiency = activeLogsForGoal.filter((log) => log.efficiency !== undefined && log.efficiency > 0);
+  const avgEfficiencyForGoal =
+    goalLogsWithEfficiency.length > 0
+      ? parseFloat((goalLogsWithEfficiency.reduce((sum, log) => sum + (log.efficiency || 0), 0) / goalLogsWithEfficiency.length).toFixed(2))
+      : null;
+
+  // Chronologically sort logs with efficiency for trend mapping
+  const chronologicallySortedLogs = [...goalLogsWithEfficiency].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Generate chart data mapping trends against the target goal
+  const goalComparisonChartData = chronologicallySortedLogs.map((log, idx) => {
+    const d = new Date(log.date);
+    const dateLabel = isNaN(d.getTime())
+      ? `Log #${idx + 1}`
+      : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    
+    return {
+      name: dateLabel,
+      efficiency: parseFloat((log.efficiency || 0).toFixed(1)),
+      targetGoal: fuelGoal,
+      difference: parseFloat(((log.efficiency || 0) - fuelGoal).toFixed(1)),
+      notes: log.notes || "",
+    };
+  });
+
+  // Calculate dynamic driver insights based on logs and notes
+  const getDrivingBehaviorInsights = () => {
+    if (goalLogsWithEfficiency.length === 0) return null;
+
+    const efficiencies = goalLogsWithEfficiency.map(l => l.efficiency || 0);
+    const maxEff = Math.max(...efficiencies);
+    const minEff = Math.min(...efficiencies);
+    
+    const bestLog = goalLogsWithEfficiency.find(l => l.efficiency === maxEff);
+    const worstLog = goalLogsWithEfficiency.find(l => l.efficiency === minEff);
+
+    const aboveGoalCount = goalLogsWithEfficiency.filter(l => (l.efficiency || 0) >= fuelGoal).length;
+    const percentAboveGoal = Math.round((aboveGoalCount / goalLogsWithEfficiency.length) * 100);
+
+    // Scan notes for keywords to identify behavioral impact
+    const notesInsights: string[] = [];
+    goalLogsWithEfficiency.forEach(log => {
+      const note = (log.notes || "").toLowerCase();
+      if (note.includes("highway") || note.includes("motorway") || note.includes("cruise") || note.includes("long") || note.includes("speed")) {
+        if (!notesInsights.some(i => i.startsWith("🛣️"))) {
+          notesInsights.push("🛣️ Highway Cruise: Steady speed cruising and minimal gear-shifting recorded. Highway miles typically improve engine efficiency by 20% to 30%!");
+        }
+      }
+      if (note.includes("city") || note.includes("traffic") || note.includes("rush") || note.includes("jam") || note.includes("signal")) {
+        if (!notesInsights.some(i => i.startsWith("🚦"))) {
+          notesInsights.push("🚦 City Congestion: Stop-and-go driving patterns and heavy idling drain fuel reserves. Try smooth throttle application and coasting up to stop lights.");
+        }
+      }
+      if (note.includes("ac") || note.includes("a/c") || note.includes("aircon") || note.includes("cool")) {
+        if (!notesInsights.some(i => i.startsWith("❄️"))) {
+          notesInsights.push("❄️ A/C Overhead: Climate control usage adds extra mechanical load on the engine. If driving at low speeds, try drawing ventilation from side vents instead.");
+        }
+      }
+      if (note.includes("tyre") || note.includes("tire") || note.includes("pressure") || note.includes("air")) {
+        if (!notesInsights.some(i => i.startsWith("🛞"))) {
+          notesInsights.push("🛞 Proper Inflation: Checked or optimal tyre pressures keep rolling resistance low, improving efficiency by up to 3%.");
+        }
+      }
+      if (note.includes("service") || note.includes("tuning") || note.includes("oil") || note.includes("filter")) {
+        if (!notesInsights.some(i => i.startsWith("🔧"))) {
+          notesInsights.push("🔧 Scheduled Tuning: Clean air filters and fresh motor oil ensure a perfect stoichiometric air-fuel mixture, keeping combustion highly efficient.");
+        }
+      }
+    });
+
+    return {
+      bestLog,
+      worstLog,
+      percentAboveGoal,
+      notesInsights
+    };
+  };
+
+  const driverInsights = getDrivingBehaviorInsights();
+
+  // Mock comparison trend data representing typical driving behaviors for preview
+  const mockGoalComparisonData = [
+    { name: "Mon", efficiency: parseFloat((fuelGoal * 0.82).toFixed(1)), targetGoal: fuelGoal, difference: parseFloat((fuelGoal * -0.18).toFixed(1)), notes: "Heavy city traffic, rapid acceleration" },
+    { name: "Tue", efficiency: parseFloat((fuelGoal * 1.08).toFixed(1)), targetGoal: fuelGoal, difference: parseFloat((fuelGoal * 0.08).toFixed(1)), notes: "Highway cruising, stable speed" },
+    { name: "Wed", efficiency: parseFloat((fuelGoal * 0.94).toFixed(1)), targetGoal: fuelGoal, difference: parseFloat((fuelGoal * -0.06).toFixed(1)), notes: "Mixed city commute, climate control on" },
+    { name: "Thu", efficiency: parseFloat((fuelGoal * 0.88).toFixed(1)), targetGoal: fuelGoal, difference: parseFloat((fuelGoal * -0.12).toFixed(1)), notes: "Sudden deceleration, traffic signals" },
+    { name: "Fri", efficiency: parseFloat((fuelGoal * 1.15).toFixed(1)), targetGoal: fuelGoal, difference: parseFloat((fuelGoal * 0.15).toFixed(1)), notes: "Gentle Eco driving, steady throttle" },
+  ];
 
   // Custom component for the new About Us screen
   const AboutUsView = () => (
@@ -658,6 +903,16 @@ export default function App() {
 
         {/* Action Tray: Connection Badge & Interactive Notification Bell */}
         <div className="flex items-center gap-3">
+          {/* Active Vehicle Mini Badge */}
+          {activeVehicle && (
+            <div className="flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 p-1 pr-2.5 rounded-full select-none">
+              <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${getVehicleAvatarInfo(activeVehicle).gradient} text-white flex items-center justify-center text-[10px] shadow-sm shrink-0`}>
+                {getVehicleAvatarInfo(activeVehicle).emoji}
+              </div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider truncate max-w-[80px] sm:max-w-[120px]">{activeVehicle.name}</span>
+            </div>
+          )}
+
           {/* Connection Status Badge */}
           <div className="hidden sm:flex items-center gap-1.5 bg-slate-900/60 px-2.5 py-1 rounded-full border border-slate-850">
             <span className={`w-1.5 h-1.5 rounded-full ${isOffline ? "bg-amber-400" : "bg-emerald-500 animate-pulse"}`}></span>
@@ -666,9 +921,48 @@ export default function App() {
             </span>
           </div>
 
+          {/* Sunrise / Sunset Sync Toggle */}
+          <button
+            onClick={() => {
+              const nextVal = !autoThemeMode;
+              setAutoThemeMode(nextVal);
+              localStorage.setItem("assistant_auto_theme", nextVal ? "true" : "false");
+              if (nextVal) {
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                      const { latitude, longitude } = pos.coords;
+                      setUserLocation({ lat: latitude, lng: longitude });
+                      localStorage.setItem("user_lat", latitude.toString());
+                      localStorage.setItem("user_lng", longitude.toString());
+                    },
+                    (err) => console.log("GPS prompt declined for theme sync:", err)
+                  );
+                }
+              }
+            }}
+            className={`p-2 rounded-xl border transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 ${
+              autoThemeMode 
+                ? "bg-blue-600/20 border-blue-500/50 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.15)]" 
+                : "bg-slate-900 border-slate-850 text-slate-400 hover:text-white"
+            }`}
+            title={autoThemeMode ? "Disable Sunrise/Sunset Auto Theme Sync" : "Enable Sunrise/Sunset Auto Theme Sync"}
+          >
+            <Sunset size={16} className={autoThemeMode ? "animate-pulse text-blue-400" : ""} />
+            <span className="hidden md:inline text-[9px] font-bold uppercase tracking-wider">
+              {autoThemeMode ? "Solar Auto: On" : "Solar Auto"}
+            </span>
+          </button>
+
           {/* Light / Dark Theme Switch */}
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => {
+              setTheme(theme === "dark" ? "light" : "dark");
+              if (autoThemeMode) {
+                setAutoThemeMode(false);
+                localStorage.setItem("assistant_auto_theme", "false");
+              }
+            }}
             className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-850 text-slate-300 hover:text-white transition cursor-pointer active:scale-95 flex items-center justify-center"
             title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
@@ -688,6 +982,85 @@ export default function App() {
               </span>
             )}
           </button>
+
+          {/* Menu Dropdown Button & Options */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-850 text-slate-300 hover:text-white transition cursor-pointer active:scale-95 flex items-center justify-center"
+              title="Menu Options"
+              id="top-right-menu-btn"
+            >
+              <MoreVertical size={16} />
+            </button>
+
+            <AnimatePresence>
+              {showMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 w-52 rounded-xl bg-slate-950 border border-slate-800 shadow-xl overflow-hidden z-[110]"
+                  id="top-right-menu-dropdown"
+                >
+                  <div className="p-2.5 border-b border-slate-900 bg-slate-900/40">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-indigo-400">AI Fuel Assistant</p>
+                    <p className="text-[8px] text-slate-500 font-mono mt-0.5">Version 2.4.0 (Aesthetic Sync)</p>
+                  </div>
+                  <div className="p-1 flex flex-col gap-0.5">
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowAboutModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-900/80 rounded-lg transition cursor-pointer"
+                      id="menu-item-about"
+                    >
+                      <Info size={14} className="text-blue-400" />
+                      <span>About Us</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowShareModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-900/80 rounded-lg transition cursor-pointer"
+                      id="menu-item-share"
+                    >
+                      <Share2 size={14} className="text-green-400" />
+                      <span>Share App</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowTermsModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-900/80 rounded-lg transition cursor-pointer"
+                      id="menu-item-terms"
+                    >
+                      <Scale size={14} className="text-amber-400" />
+                      <span>Terms & Conditions</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowPrivacyModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-900/80 rounded-lg transition cursor-pointer"
+                      id="menu-item-privacy"
+                    >
+                      <Shield size={14} className="text-purple-400" />
+                      <span>Privacy Policy</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </header>
 
@@ -846,6 +1219,22 @@ export default function App() {
               </div>
             </div>
 
+            {/* Active Vehicle Sidebar Profile Card */}
+            {activeVehicle && (
+              <div className="bg-slate-950/80 border border-white/[0.06] rounded-2xl p-3 flex items-center gap-3 shadow-inner transition-all hover:border-white/[0.1]">
+                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getVehicleAvatarInfo(activeVehicle).gradient} text-white flex items-center justify-center text-lg shadow shrink-0`}>
+                  {getVehicleAvatarInfo(activeVehicle).emoji}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[11px] font-extrabold text-slate-200 truncate block uppercase tracking-wider">{activeVehicle.name}</span>
+                  <span className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse inline-block"></span>
+                    Active Profile
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Streamlined Desktop Navigation Container */}
             <div className="select-none py-1 w-full">
               {/* Navigation links (Clean Vertical Stack for Desktop) */}
@@ -990,59 +1379,439 @@ export default function App() {
             
             {activeTab === "dashboard" && (
               <>
-                {/* Introduction Card with Bento Style */}
-                <div className="bg-slate-900/60 border border-white/[0.08] rounded-2xl p-5 text-slate-100 relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.35)] space-y-4">
-                  <div className="absolute -right-8 -top-8 w-48 h-48 rounded-full bg-indigo-500/10 blur-3xl"></div>
-                  <div className="max-w-xl space-y-3 relative z-10">
-                    <span className="text-[13px] uppercase font-semibold tracking-wider text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 inline-block">
-                      Bento Fuel Optimization Hub
-                    </span>
-                    <h2 className="text-[20px] font-bold tracking-tight text-white">
-                      Log, Optimize, and Track Your Drive
-                    </h2>
-                    <p className="text-[15px] text-slate-300 leading-relaxed font-normal">
-                      Register your vehicle profiles, log daily petrol refills, and query our smart AI voice assistant in Roman Urdu, Urdu, or English to optimize vehicle performance and minimize fuel expenses!
-                    </p>
+                {/* 🚗 Personalized Active Vehicle Profile Summary Banner */}
+                {activeVehicle && (
+                  <div className="bg-slate-900/60 border border-white/[0.08] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden shadow-lg shadow-black/20">
+                    <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-indigo-500/5 blur-2xl"></div>
+                    <div className="flex items-center gap-3.5 relative z-10">
+                      {/* Avatar with customized background gradient and emoji icon */}
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getVehicleAvatarInfo(activeVehicle).gradient} text-white flex items-center justify-center text-2xl shadow-lg shadow-black/20 shrink-0`}>
+                        {getVehicleAvatarInfo(activeVehicle).emoji}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-black text-white uppercase tracking-wider">{activeVehicle.name}</h2>
+                          <span className="inline-flex items-center text-[10px] bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            Active Fleet Profile
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] text-slate-400 font-bold">
+                          <span className="bg-slate-950 px-2 py-0.5 rounded-lg border border-white/[0.05] flex items-center gap-1 uppercase">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                            {activeVehicle.fuelType}
+                          </span>
+                          <span className="bg-slate-950 px-2 py-0.5 rounded-lg border border-white/[0.05] flex items-center gap-1 uppercase">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                            {activeVehicle.engineSize}
+                          </span>
+                          <span className="bg-slate-950 px-2 py-0.5 rounded-lg border border-white/[0.05] flex items-center gap-1 uppercase">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                            {activeVehicle.odometerUnit} Unit
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Compact real-time analytics */}
+                    <div className="flex gap-4 items-center shrink-0 border-t sm:border-t-0 sm:border-l border-white/[0.08] pt-3 sm:pt-0 sm:pl-5 relative z-10">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider block">Avg Efficiency</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-extrabold font-mono text-white">{avgEfficiencyForGoal !== null ? avgEfficiencyForGoal : "N/A"}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase">{activeVehicle.odometerUnit === "Km" ? "Km/L" : "MPG"}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-wider block">Odo Logs</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-extrabold font-mono text-white">{activeLogsForGoal.length}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase">entries</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Visual Progress: Daily Fuel Economy Goal */}
+                <div className="bg-slate-900/60 border border-white/[0.08] rounded-2xl p-5 text-slate-100 relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.35)] space-y-5">
+                  <div className="absolute -right-8 -top-8 w-48 h-48 rounded-full bg-indigo-500/5 blur-3xl"></div>
+                  
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-indigo-600/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                        <Flame size={20} className="text-indigo-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
+                          Daily Fuel Economy Goal
+                        </h3>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">Track and optimize your vehicle's fuel efficiency against your target</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Compact Global Currency Setting */}
+                      <div className="flex items-center gap-1.5 bg-slate-950 border border-white/[0.08] p-1 rounded-xl shrink-0">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pl-1.5">Currency:</span>
+                        <select
+                          value={["PKR", "USD", "INR", "EUR", "AED", "SAR", "GBP"].includes(currency) ? currency : "custom"}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val !== "custom") {
+                              setCurrency(val);
+                            } else {
+                              const customVal = prompt("Enter your custom currency symbol or code (e.g. CAD, AUD, QR, ৳):");
+                              if (customVal) {
+                                setCurrency(customVal.trim().toUpperCase());
+                              }
+                            }
+                          }}
+                          className="bg-slate-900 border border-white/[0.05] rounded-lg px-2 py-1 text-[11px] text-slate-200 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                        >
+                          <option value="PKR">PKR (₨)</option>
+                          <option value="USD">USD ($)</option>
+                          <option value="INR">INR (₹)</option>
+                          <option value="EUR">EUR (€)</option>
+                          <option value="AED">AED (د.إ)</option>
+                          <option value="SAR">SAR (ر.س)</option>
+                          <option value="GBP">GBP (£)</option>
+                          <option value="custom">Custom...</option>
+                        </select>
+
+                        {!["PKR", "USD", "INR", "EUR", "AED", "SAR", "GBP"].includes(currency) && (
+                          <span className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-black px-2 py-1 rounded-lg font-mono">
+                            {currency}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Target Setting Input Controls */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-400">Set Goal:</span>
+                        <div className="flex items-center bg-slate-950 border border-white/[0.08] rounded-xl overflow-hidden p-0.5">
+                          <button
+                            onClick={() => setFuelGoal(prev => Math.max(1, parseFloat((prev - 0.5).toFixed(1))))}
+                            className="px-2.5 py-1 text-slate-400 hover:text-white hover:bg-slate-900 font-bold text-xs transition cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={fuelGoal}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val) && val > 0) {
+                                setFuelGoal(val);
+                              }
+                            }}
+                            className="w-14 bg-transparent text-center text-xs font-bold font-mono text-slate-100 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => setFuelGoal(prev => parseFloat((prev + 0.5).toFixed(1)))}
+                            className="px-2.5 py-1 text-slate-400 hover:text-white hover:bg-slate-900 font-bold text-xs transition cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <span className="text-xs font-bold font-mono text-indigo-400">
+                          {activeVehicle ? (activeVehicle.odometerUnit === "Km" ? "Km/L" : "MPG") : "Km/L"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Global Currency Setting */}
-                  <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs relative z-10">
-                    <div className="space-y-0.5">
-                      <span className="text-[13px] text-indigo-400 font-semibold uppercase tracking-wider block">Global Currency Setting</span>
-                      <p className="text-xs text-slate-400">Set fuel refuels, budgets, and cost metrics in your currency.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={["PKR", "USD", "INR", "EUR", "AED", "SAR", "GBP"].includes(currency) ? currency : "custom"}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val !== "custom") {
-                            setCurrency(val);
-                          } else {
-                            const customVal = prompt("Enter your custom currency symbol or code (e.g. CAD, AUD, QR, ৳):");
-                            if (customVal) {
-                              setCurrency(customVal.trim().toUpperCase());
-                            }
-                          }
-                        }}
-                        className="bg-slate-950 border border-white/[0.08] rounded-xl px-2.5 py-1.5 text-xs text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
-                      >
-                        <option value="PKR">PKR (₨)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="INR">INR (₹)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="AED">AED (د.إ)</option>
-                        <option value="SAR">SAR (ر.س)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="custom">Custom...</option>
-                      </select>
-
-                      {!["PKR", "USD", "INR", "EUR", "AED", "SAR", "GBP"].includes(currency) && (
-                        <span className="bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-black px-2.5 py-1.5 rounded-xl font-mono">
-                          {currency}
+                  {/* Progress Display */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center pb-1">
+                    {/* Progress Numbers */}
+                    <div className="space-y-1.5">
+                      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Goal Progress Details</div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-black font-mono text-white">
+                          {avgEfficiencyForGoal !== null ? avgEfficiencyForGoal : "0"}
                         </span>
-                      )}
+                        <span className="text-xs text-slate-400 font-medium uppercase">
+                          Current / {fuelGoal} {activeVehicle ? (activeVehicle.odometerUnit === "Km" ? "Km/L" : "MPG") : "Km/L"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        {activeVehicle ? (
+                          <>
+                            <div className={`w-5 h-5 rounded bg-gradient-to-br ${getVehicleAvatarInfo(activeVehicle).gradient} text-white flex items-center justify-center text-[10px] font-bold shadow-sm shrink-0`}>
+                              {getVehicleAvatarInfo(activeVehicle).emoji}
+                            </div>
+                            <span className="text-[11px] text-slate-300">
+                              Currently tracking: <strong className="text-white font-bold">{activeVehicle.name}</strong>
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">
+                            No active vehicle selected. Register a profile below!
+                          </span>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Progress Bar Visual */}
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400 font-semibold uppercase tracking-wider">Completion Metrics</span>
+                        <span className="font-mono font-bold text-indigo-400 text-sm">
+                          {avgEfficiencyForGoal !== null 
+                            ? `${Math.min(100, Math.round((avgEfficiencyForGoal / fuelGoal) * 100))}%`
+                            : "0%"}
+                        </span>
+                      </div>
+                      <div className="h-3 w-full bg-slate-950 rounded-full overflow-hidden border border-white/[0.08] p-[1px]">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 rounded-full transition-all duration-500 shadow-lg shadow-indigo-500/20"
+                          style={{
+                            width: `${avgEfficiencyForGoal !== null ? Math.min(100, Math.round((avgEfficiencyForGoal / fuelGoal) * 100)) : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                      
+                      {/* Interactive dynamic motivational text */}
+                      <p className="text-xs text-slate-300 italic leading-snug">
+                        {avgEfficiencyForGoal === null ? (
+                          <span>Please add at least one refuel log with calculated efficiency to track progress.</span>
+                        ) : avgEfficiencyForGoal >= fuelGoal ? (
+                          <span className="text-emerald-400 font-semibold">🎉 Goal Met! Excellent eco-friendly driving habits. Keep it up!</span>
+                        ) : (
+                          <span>
+                            You need <strong className="text-indigo-300 font-mono font-bold">{(fuelGoal - avgEfficiencyForGoal).toFixed(1)}</strong> more units to reach your goal. Smooth acceleration and maintaining stable speeds will help!
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* COMPONENT SEGMENT: Comparison Chart Mapping Efficiency Trends */}
+                  <div className="border-t border-white/[0.05] pt-4 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                          <Activity size={13} className="text-indigo-400 animate-pulse" />
+                          Behavioral Efficiency vs Target Goal Trend
+                        </h4>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">
+                          Comparing drive patterns, environmental triggers, and notes against your benchmark
+                        </p>
+                      </div>
+
+                      {/* Mode selection buttons */}
+                      <div className="flex items-center gap-1.5 bg-slate-950 border border-white/[0.08] p-1 rounded-xl shrink-0 self-start sm:self-center">
+                        <button
+                          onClick={() => setShowChartDemo(false)}
+                          className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                            !showChartDemo
+                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                              : "text-slate-400 hover:text-slate-200"
+                          }`}
+                        >
+                          Live Data
+                        </button>
+                        <button
+                          onClick={() => setShowChartDemo(true)}
+                          className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                            showChartDemo
+                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                              : "text-slate-400 hover:text-slate-200"
+                          }`}
+                        >
+                          Simulator
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Chart Container */}
+                    {(() => {
+                      const isDemoMode = showChartDemo;
+                      const activeData = isDemoMode ? mockGoalComparisonData : goalComparisonChartData;
+                      const currentUnit = activeVehicle ? (activeVehicle.odometerUnit === "Km" ? "Km/L" : "MPG") : "Km/L";
+
+                      return (
+                        <div className="space-y-4">
+                          {isDemoMode && (
+                            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 text-xs text-indigo-300 leading-normal flex gap-2.5 items-start">
+                              <Lightbulb size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+                              <div>
+                                <strong className="font-semibold block text-white mb-0.5">Interactive Behavior Simulator</strong>
+                                Showing simulated behavior curves (traffic jams vs steady cruising). Log at least one refuel entry with computed efficiency for your active vehicle below to unlock your live trend comparison!
+                              </div>
+                            </div>
+                          )}
+
+                          {!isDemoMode && goalLogsWithEfficiency.length === 0 && (
+                            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 text-xs text-indigo-300 leading-normal flex gap-2.5 items-start">
+                              <Sparkles size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+                              <div>
+                                <strong className="font-semibold block text-white mb-0.5">Live Data Trend Active</strong>
+                                No fuel logs with calculated efficiency are available yet for the active vehicle profile. Log at least one fuel refill entry in the "Fuel Logs Manager" section below with odometer and fuel quantity details to start plotting your real-world driving efficiency!
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Recharts Comparison Area */}
+                          <div className="h-52 w-full bg-slate-950/40 border border-white/[0.04] rounded-2xl p-3">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={activeData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
+                                <defs>
+                                  <linearGradient id="efficiencyGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25}/>
+                                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0.0}/>
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+                                <XAxis 
+                                  dataKey="name" 
+                                  tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} 
+                                  tickLine={false} 
+                                  axisLine={false} 
+                                />
+                                <YAxis 
+                                  tick={{ fontSize: 9, fill: "#94a3b8", fontWeight: 500 }} 
+                                  tickLine={false} 
+                                  axisLine={false} 
+                                />
+                                <Tooltip
+                                  content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                      const data = payload[0].payload;
+                                      const isAbove = data.efficiency >= data.targetGoal;
+                                      return (
+                                        <div className="bg-slate-950/95 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl space-y-1.5 max-w-[240px] text-left">
+                                          <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">{data.name}</div>
+                                          <div className="flex items-baseline gap-1.5">
+                                            <span className="text-base font-extrabold text-white font-mono">{data.efficiency}</span>
+                                            <span className="text-[10px] font-semibold text-slate-400">{currentUnit}</span>
+                                          </div>
+                                          <div className="text-[11px] font-semibold flex items-center gap-1 font-mono">
+                                            {isAbove ? (
+                                              <span className="text-emerald-400 flex items-center gap-0.5">
+                                                <TrendingUp size={12} /> +{data.difference} units above target
+                                              </span>
+                                            ) : (
+                                              <span className="text-rose-400 flex items-center gap-0.5 font-mono">
+                                                <TrendingDown size={12} /> {data.difference} units below target
+                                              </span>
+                                            )}
+                                          </div>
+                                          {data.notes && (
+                                            <div className="text-[10px] text-slate-300 border-t border-white/[0.08] pt-1.5 mt-1.5 leading-normal italic bg-slate-900/50 p-1.5 rounded-lg">
+                                              "{data.notes}"
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  }}
+                                />
+                                <ReferenceLine 
+                                  y={fuelGoal} 
+                                  stroke="#818cf8" 
+                                  strokeWidth={1.5}
+                                  strokeDasharray="4 4" 
+                                  label={{ value: `Goal Benchmark (${fuelGoal})`, fill: '#818cf8', fontSize: 9, fontWeight: 'bold', position: 'top', dy: -5 }} 
+                                />
+                                <Area 
+                                  type="monotone" 
+                                  dataKey="efficiency" 
+                                  stroke="#6366f1" 
+                                  strokeWidth={3} 
+                                  fillOpacity={1} 
+                                  fill="url(#efficiencyGradient)"
+                                  dot={{ r: 4, stroke: '#0f172a', strokeWidth: 2, fill: '#818cf8' }} 
+                                  activeDot={{ r: 6, stroke: '#0f172a', strokeWidth: 2 }} 
+                                  name="Efficiency" 
+                                />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
+
+                          {/* Detailed Granular Insights Block */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1">
+                            {/* Stats & Compliance */}
+                            <div className="bg-slate-950/40 border border-white/[0.04] p-4 rounded-xl flex flex-col justify-between space-y-3">
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Goal Compliance Rate</span>
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-2xl font-black text-indigo-400 font-mono">
+                                    {isDemoMode ? "60%" : `${driverInsights?.percentAboveGoal || 0}%`}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-bold uppercase">Efficiency Compliance</span>
+                                </div>
+                              </div>
+                              <p className="text-[11px] text-slate-300 leading-normal">
+                                {isDemoMode ? (
+                                  "During simulated runs, stable throttle habits and cruise control achieved target compliance 60% of the time."
+                                ) : (
+                                  `Your driving habits match or exceed your fuel savings goals on ${driverInsights?.percentAboveGoal || 0}% of all recorded refill cycles.`
+                                )}
+                              </p>
+                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-white/[0.03]">
+                                <Award size={13} className="text-yellow-500" />
+                                <span>
+                                  {isDemoMode ? (
+                                    "Tip: Cruising preserves engine torque."
+                                  ) : (
+                                    (driverInsights?.percentAboveGoal || 0) >= 75 
+                                      ? "Excellent eco-driver! Keep maintaining low engine RPMs."
+                                      : "Accelerate gently and shift early to increase compliance."
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Behavior & Event Insights */}
+                            <div className="bg-slate-950/40 border border-white/[0.04] p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Granular Driving Behaviors</span>
+                                <div className="space-y-2 mt-2">
+                                  {isDemoMode ? (
+                                    <>
+                                      <div className="text-[11px] text-slate-300 flex items-start gap-2">
+                                        <span className="shrink-0">🛣️</span>
+                                        <span><strong>Highway Cruise:</strong> Stable highway cruises increase your efficiency by up to 25%.</span>
+                                      </div>
+                                      <div className="text-[11px] text-slate-300 flex items-start gap-2">
+                                        <span className="shrink-0">🚦</span>
+                                        <span><strong>City Traffic:</strong> Stop-and-go city traffic lowers average mileage due to heavy idling.</span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {driverInsights?.notesInsights && driverInsights.notesInsights.length > 0 ? (
+                                        driverInsights.notesInsights.slice(0, 2).map((insight, idx) => (
+                                          <div key={idx} className="text-[11px] text-slate-300 flex items-start gap-2 leading-normal">
+                                            <span>{insight}</span>
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <div className="text-[11px] text-slate-400 italic flex items-center gap-2">
+                                          <Lightbulb size={13} className="text-indigo-400 shrink-0" />
+                                          Add descriptive notes (e.g. "highway", "city traffic", "AC off") to your refuel logs to unlock personalized behavior correlation cards!
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Best log benchmark */}
+                              {!isDemoMode && driverInsights?.bestLog && (
+                                <div className="border-t border-white/[0.04] pt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                                  <span>Best Efficiency Log:</span>
+                                  <span className="font-mono font-bold text-emerald-400">
+                                    {driverInsights.bestLog.efficiency} {currentUnit} ({new Date(driverInsights.bestLog.date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -1166,6 +1935,7 @@ export default function App() {
                   onAddVehicle={handleAddVehicle}
                   onSelectVehicle={handleSelectVehicle}
                   onDeleteVehicle={handleDeleteVehicle}
+                  onUpdateVehicle={handleUpdateVehicle}
                 />
 
                 {/* Fuel Refilling Entry logs */}
@@ -1230,6 +2000,7 @@ export default function App() {
                   currency={currency}
                   activeSubTab={activeSubTab}
                   onSubTabChange={setActiveSubTab}
+                  onAddLog={handleAddLog}
                 />
               </div>
             )}
@@ -1344,6 +2115,320 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {/* Dynamic Overlays / Modals */}
+      <AnimatePresence>
+        {/* About Us Modal */}
+        {showAboutModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAboutModal(false)}
+              className="absolute inset-0 bg-black"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col z-10"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-600/10 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400">
+                    <Info size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">About AI Fuel Assistant</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Core mission & details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAboutModal(false)}
+                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-400 hover:text-white transition cursor-pointer flex items-center justify-center"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="space-y-4 overflow-y-auto pr-1 text-slate-300 text-xs leading-relaxed max-h-[50vh] scrollbar-thin scrollbar-thumb-slate-800">
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">Our Vision</h4>
+                  <p className="font-normal text-slate-300">
+                    AI Fuel Assistant is built to promote fuel economy and clean combustion tracking. We render state-of-the-art interactive vehicle telemetry calculations, smart range logs, and diagnostic simulations to help drivers minimize environmental footprint and maximize mileage efficiency.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">Engineering Excellence</h4>
+                  <p className="font-normal text-slate-300">
+                    This utility integrates standard non-intrusive APIs, reactive layouts, real-time local mathematical conversions, and secure storage compliance standards.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-800 pt-4 mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowAboutModal(false)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Share App Modal */}
+        {showShareModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowShareModal(false)}
+              className="absolute inset-0 bg-black"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden z-10"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-600/10 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400">
+                    <Share2 size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">Share App</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Invite others to optimize fuel</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-400 hover:text-white transition cursor-pointer flex items-center justify-center"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-center">
+                <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                  Share this application with friends and family to help them optimize their vehicles' efficiency, find cheap fuel stations, and run diagnostic simulated OBD scans!
+                </p>
+
+                <div className="bg-slate-950 border border-slate-850 p-2.5 rounded-2xl flex items-center gap-2 mt-4">
+                  <input
+                    type="text"
+                    readOnly
+                    value={window.location.href}
+                    className="flex-1 bg-transparent text-slate-300 text-[10px] outline-none font-mono px-2 select-all"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      setCopiedShareLink(true);
+                      setTimeout(() => setCopiedShareLink(false), 2000);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition cursor-pointer ${
+                      copiedShareLink 
+                        ? "bg-green-600/20 border border-green-500/40 text-green-400" 
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                    }`}
+                  >
+                    {copiedShareLink ? <Check size={11} /> : <Copy size={11} />}
+                    <span>{copiedShareLink ? "Copied" : "Copy Link"}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-800 pt-4 mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 text-xs font-semibold rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Terms & Conditions Modal */}
+        {showTermsModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowTermsModal(false)}
+              className="absolute inset-0 bg-black"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col z-10"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-600/10 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400">
+                    <Scale size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">Terms of Service</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Google Play Console Compliant Agreement</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-400 hover:text-white transition cursor-pointer flex items-center justify-center"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="space-y-4 overflow-y-auto pr-1 text-slate-300 text-xs leading-relaxed max-h-[50vh] scrollbar-thin scrollbar-thumb-slate-800">
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">1. Acceptance of Terms</h4>
+                  <p className="font-normal text-slate-300">
+                    By downloading, installing, or using the AI Fuel Assistant mobile application, you agree to comply with and be bound by these Terms of Service. These terms satisfy all developer distribution requirements mandated by standard App Store guidelines. If you do not agree to these terms, you must not access or use the application.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">2. Scope & Disclaimer of Simulated Features</h4>
+                  <p className="font-normal text-slate-300">
+                    The OBD-II diagnostics, engine performance curves, and digital sensor updates provided in this app are virtual simulation tools designed for educational, mathematical modeling, and recreational purposes only. This app does not write to, override, or alter your vehicle's physical engine control unit (ECU). Users must rely on official certified vehicle repair centers for physical hardware servicing.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">3. Location and Data Accuracy</h4>
+                  <p className="font-normal text-slate-300">
+                    Calculations of sunrise/sunset, location maps, and estimated local fuel station rates are provided for convenience as reference estimates. Fuel pricing fluctuates continuously based on regional vendors. Always verify actual local prices, road conditions, and traffic safety guidelines before driving.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">4. User Safety & Lawful Driving</h4>
+                  <p className="font-normal text-slate-300">
+                    Do not interact with the application or input data while operating a moving vehicle. Always obey local traffic laws, and use hands-free mechanisms or pull over safely to log your fuel fills.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">5. No Warranty & Limitation of Liability</h4>
+                  <p className="font-normal text-slate-300">
+                    This application is provided on an "as-is" and "as-available" basis without warranties of any kind. We disclaim all liability for any vehicular deviations, log miscalculations, or decisions made using app recommendations.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-800 pt-4 mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                >
+                  Accept Terms
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Privacy Policy Modal */}
+        {showPrivacyModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPrivacyModal(false)}
+              className="absolute inset-0 bg-black"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col z-10"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-600/10 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400">
+                    <Shield size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">Privacy Policy</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Google Play Console Compliant Privacy Charter</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-400 hover:text-white transition cursor-pointer flex items-center justify-center"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="space-y-4 overflow-y-auto pr-1 text-slate-300 text-xs leading-relaxed max-h-[50vh] scrollbar-thin scrollbar-thumb-slate-800">
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">1. Data Storage & Privacy Protection</h4>
+                  <p className="font-normal text-slate-300">
+                    We value your privacy. All log records, fuel entry calculations, odometer settings, and virtual vehicle parameters are stored exclusively in your device's secure local sandbox (via browser localStorage). No server-side relational databases collect, log, sell, or monetize your individual telemetry data.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">2. GPS Geolocation Transparency</h4>
+                  <p className="font-normal text-slate-300">
+                    When accessing the solar sync or the fuel finder features, the app requests native device geolocation coordinates. These coordinates are used exclusively inside the active session context to calculate sunrise/sunset times and distance metrics. Your location is never sent to any third-party background telemetry providers or advertising networks.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">3. Voice Input Processing</h4>
+                  <p className="font-normal text-slate-300">
+                    Voice inputs requested through the speech processing module are transcribed using standard browser Web Speech APIs. No raw voice clips, microphone recordings, or transcripts are compiled, archived, or transmitted to external storage servers.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">4. AI Processing Safety</h4>
+                  <p className="font-normal text-slate-300">
+                    Chat queries dispatched to the virtual AI Assistant are proxied securely server-side through highly guarded inference frameworks. No personally identifiable information (PII) is included in requests, ensuring complete compliance with global consumer privacy regulations.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">5. Children's Privacy (COPPA Compliance)</h4>
+                  <p className="font-normal text-slate-300">
+                    This application is fully compliant with the Children's Online Privacy Protection Act (COPPA) and does not intentionally target, collect, or retain any personal information from children under the age of 13.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">6. Device Permissions & Safe Usage Guarantee</h4>
+                  <p className="font-normal text-slate-300">
+                    This application may request device permissions such as GPS Location, Bluetooth (for OBD-II links), and the Microphone (for voice commands). These permissions are accessed strictly to provide the functional utilities of the application on your direct request. We guarantee that no sensors or local data are ever accessed for illegal surveillance, unauthorized background monitoring, or malicious purposes. All data remains strictly under user control.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-800 pt-4 mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

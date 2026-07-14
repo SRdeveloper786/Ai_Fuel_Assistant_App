@@ -33,7 +33,7 @@ export default function FuelAnalytics({ activeVehicle, logs, currency = "PKR" }:
     date: new Date(log.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     cost: log.totalCost,
     price: log.pricePerUnit,
-    mileage: log.mileage || 0,
+    efficiency: log.efficiency || 0,
     liters: log.fuelFilled,
   }));
 

@@ -10,6 +10,7 @@ export interface Vehicle {
   engineSize: string; // e.g. "1300cc", "70cc"
   odometerUnit: OdometerUnit;
   createdAt: string;
+  avatar?: string; // stores an emoji, icon identifier, or dynamic avatar spec
 }
 
 export interface FuelEntry {
