@@ -344,7 +344,7 @@ export function SmartFeatures({
   const totalCostOfFuel = logs.reduce((sum, log) => sum + log.totalCost, 0);
   const totalLitersRefilled = logs.reduce((sum, log) => sum + log.fuelFilled, 0);
   
-  // Calculate average mileage
+  // Calculate average efficiency
   let calculatedAverageMileage = 0;
   if (logs.length > 1) {
     const sortedLogs = [...logs].sort((a, b) => a.odometer - b.odometer);
@@ -581,7 +581,7 @@ export function SmartFeatures({
         setVoiceCommandActive(true);
         let guidanceText = "Listening... Try saying: 'check diagnostics', 'car status', or 'fuel levels'";
         if (drivingHubLang === "hi") {
-          guidanceText = "सुन रहा हूँ... बोलिए: 'status', 'gadi ki halat', या 'average mileage'";
+          guidanceText = "सुन रहा हूँ... बोलिए: 'status', 'gadi ki halat', या 'average efficiency'";
         }
         setSpeechOutput(guidanceText);
       };
@@ -652,7 +652,7 @@ export function SmartFeatures({
     const isFuel = 
       command.includes("fuel") || 
       command.includes("average") || 
-      command.includes("mileage") || 
+      command.includes("efficiency") || 
       command.includes("efficiency") || 
       command.includes("petrol") || 
       command.includes("milej") || 
@@ -731,7 +731,7 @@ export function SmartFeatures({
       } else if (isHello) {
         reply = "Hello! I am your hands-free digital co-pilot. Tell me to check diagnostics or status while you drive.";
       } else {
-        reply = "I heard you, but I didn't recognize that instruction. Try saying: 'check diagnostics', 'car status', or 'average mileage'.";
+        reply = "I heard you, but I didn't recognize that instruction. Try saying: 'check diagnostics', 'car status', or 'average efficiency'.";
       }
     }
 
@@ -773,7 +773,7 @@ export function SmartFeatures({
           <button
             onClick={() => setActiveSubTab("bento")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "bento" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "bento" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Bento Analytics
@@ -781,7 +781,7 @@ export function SmartFeatures({
           <button
             onClick={() => setActiveSubTab("obd")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "obd" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "obd" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             OBD-II Bluetooth
@@ -789,7 +789,7 @@ export function SmartFeatures({
           <button
             onClick={() => setActiveSubTab("maintenance")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "maintenance" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "maintenance" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Maintenance
@@ -797,7 +797,7 @@ export function SmartFeatures({
           <button
             onClick={() => setActiveSubTab("theft")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "theft" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "theft" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Guard Mode
@@ -805,7 +805,7 @@ export function SmartFeatures({
           <button
             onClick={() => setActiveSubTab("troubleshoot")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "troubleshoot" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "troubleshoot" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Offline Fixes
@@ -814,7 +814,7 @@ export function SmartFeatures({
           <button
             onClick={() => setActiveSubTab("budget")}
             className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-              activeSubTab === "budget" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+              activeSubTab === "budget" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             Budget Planner
@@ -1122,7 +1122,7 @@ export function SmartFeatures({
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h3 className="text-xs font-bold text-slate-200">Wear Status & Part Lifespan Tracker</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Predictive algorithm based on mileage and wear coefficients</p>
+                <p className="text-[10px] text-slate-500 font-medium">Predictive algorithm based on efficiency and wear coefficients</p>
               </div>
               <button
                 onClick={() => setShowMaintForm(!showMaintForm)}
@@ -1196,7 +1196,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      oilWear > 80 ? "bg-red-500" : oilWear > 60 ? "bg-amber-500" : "bg-blue-500"
+                      oilWear > 80 ? "bg-red-500" : oilWear > 60 ? "bg-amber-500" : "bg-amber-500"
                     }`}
                     style={{ width: `${oilWear}%` }}
                   ></div>
@@ -1219,7 +1219,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      plugsWear > 80 ? "bg-red-500" : plugsWear > 60 ? "bg-amber-500" : "bg-blue-500"
+                      plugsWear > 80 ? "bg-red-500" : plugsWear > 60 ? "bg-amber-500" : "bg-amber-500"
                     }`}
                     style={{ width: `${plugsWear}%` }}
                   ></div>
@@ -1242,7 +1242,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      brakesWear > 80 ? "bg-red-500" : brakesWear > 60 ? "bg-amber-500" : "bg-blue-500"
+                      brakesWear > 80 ? "bg-red-500" : brakesWear > 60 ? "bg-amber-500" : "bg-amber-500"
                     }`}
                     style={{ width: `${brakesWear}%` }}
                   ></div>
@@ -1265,7 +1265,7 @@ export function SmartFeatures({
                 <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-2.5 rounded-full transition-all duration-500 ${
-                      tyresWear > 80 ? "bg-red-500" : tyresWear > 60 ? "bg-amber-500" : "bg-blue-500"
+                      tyresWear > 80 ? "bg-red-500" : tyresWear > 60 ? "bg-amber-500" : "bg-amber-500"
                     }`}
                     style={{ width: `${tyresWear}%` }}
                   ></div>
@@ -1610,7 +1610,7 @@ export function SmartFeatures({
                 // 4. Low Fuel Efficiency Anomaly Alert
                 if (calculatedAverageMileage > 0 && calculatedAverageMileage < 10) {
                   alerts.push(
-                    <div key="mileage-anomaly" className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl flex items-start gap-3.5">
+                    <div key="efficiency-anomaly" className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-xl flex items-start gap-3.5">
                       <div className="p-1 bg-indigo-500/15 text-indigo-400 rounded-lg shrink-0 mt-0.5">
                         <TrendingUp size={14} className="rotate-180" />
                       </div>

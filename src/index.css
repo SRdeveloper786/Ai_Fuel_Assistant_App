@@ -278,8 +278,10 @@ body {
   border-color: #cbd5e1 !important;
 }
 
-.light-theme .divide-white\/\[0\.08\] > * + * {
-  border-color: #cbd5e1 !important;
+.light-theme .bg-emerald-900\/50 {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #34d399 !important;
 }
 
 /* Light Mode Overrides for Mobile Bottom Sticky Toolbar */

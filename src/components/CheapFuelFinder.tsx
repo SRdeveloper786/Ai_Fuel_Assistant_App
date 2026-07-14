@@ -172,9 +172,20 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
       },
       (error) => {
         console.error("Geolocation error:", error);
-        let errorMsg = "Failed to detect location. Please enable location permissions.";
-        if (error.code === error.PERMISSION_DENIED) {
-          errorMsg = "Location access denied. Please allow location permissions in your browser.";
+        let errorMsg = "Failed to detect location.";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMsg = "Location access denied. Please allow location permissions in your browser.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMsg = "Location information is unavailable.";
+            break;
+          case error.TIMEOUT:
+            errorMsg = "The request to get user location timed out.";
+            break;
+          default:
+            errorMsg = "An unknown error occurred while detecting location.";
+            break;
         }
         setLocationError(errorMsg);
         setIsTracking(false);
@@ -343,7 +354,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                       disabled={isTracking}
                       className={`w-full flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl transition border text-[11px] font-bold cursor-pointer ${
                         selectedCity === "Live Location"
-                          ? "bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-600/20"
+                          ? "bg-indigo-600 border-amber-500 text-white shadow-lg shadow-amber-600/20"
                           : "bg-slate-950 border-white/[0.08] text-amber-400 hover:bg-amber-900/40 hover:text-amber-300"
                       }`}
                     >
@@ -360,7 +371,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                       <button
                         onClick={() => setSortBy("price")}
                         className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all cursor-pointer ${
-                          sortBy === "price" ? "bg-amber-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                          sortBy === "price" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
                         }`}
                       >
                         Cheapest
@@ -368,7 +379,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                       <button
                         onClick={() => setSortBy("distance")}
                         className={`flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all cursor-pointer ${
-                          sortBy === "distance" ? "bg-amber-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                          sortBy === "distance" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
                         }`}
                       >
                         Nearest
@@ -440,7 +451,7 @@ export default function CheapFuelFinder({ activeVehicle, currency = "PKR" }: Che
                           e.stopPropagation();
                           handleStartNavigation(station);
                         }}
-                        className="flex items-center gap-1 text-[10px] font-extrabold bg-amber-600/15 hover:bg-amber-600 text-amber-300 hover:text-white px-2.5 py-1 rounded-lg transition border border-amber-500/20 cursor-pointer"
+                        className="flex items-center gap-1 text-[10px] font-extrabold bg-indigo-600/15 hover:bg-indigo-600 text-amber-300 hover:text-white px-2.5 py-1 rounded-lg transition border border-amber-500/20 cursor-pointer"
                       >
                         <Navigation size={10} />
                         Route Way

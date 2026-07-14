@@ -124,11 +124,11 @@ export default function App() {
       alert("No fuel logs recorded to export. (ایکسپورٹ کے لیے کوئی پٹرول لاگز موجود نہیں ہیں)");
       return;
     }
-    const headers = "Date,Vehicle,Odometer,Fuel Filled (L),Price Per Liter,Total Cost,Notes,Mileage\n";
+    const headers = "Date,Vehicle,Odometer,Fuel Filled (L),Price Per Liter,Total Cost,Notes,Efficiency\n";
     const rows = fuelLogs.map(log => {
       const v = vehicles.find(veh => veh.id === log.vehicleId);
       const vehicleName = v ? v.name : log.vehicleId;
-      return `"${log.date}","${vehicleName}",${log.odometer},${log.fuelFilled},${log.pricePerUnit},${log.totalCost},"${(log.notes || '').replace(/"/g, '""')}",${log.mileage || ''}`;
+      return `"${log.date}","${vehicleName}",${log.odometer},${log.fuelFilled},${log.pricePerUnit},${log.totalCost},"${(log.notes || '').replace(/"/g, '""')}",${log.efficiency || ''}`;
     }).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

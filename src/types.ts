@@ -20,7 +20,7 @@ export interface FuelEntry {
   fuelFilled: number; // liters or gallons
   pricePerUnit: number;
   totalCost: number;
-  mileage?: number; // calculated efficiency (Km/L or MPG)
+  efficiency?: number; // calculated efficiency (Km/L or MPG)
   notes?: string;
 }
 

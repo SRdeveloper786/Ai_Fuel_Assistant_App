@@ -138,12 +138,12 @@ export default function FuelLogsManager({
       return;
     }
 
-    // Dynamic mileage calculation (real average!)
+    // Dynamic efficiency calculation (real average!)
     // Formula: (Current Odometer - Last Odometer) / Fuel Filled this time
-    let calculatedMileage: number | undefined = undefined;
+    let calculatedEfficiency: number | undefined = undefined;
     if (lastEntry) {
       const odoDifference = odoNum - lastEntry.odometer;
-      calculatedMileage = parseFloat((odoDifference / fuelNum).toFixed(2));
+      calculatedEfficiency = parseFloat((odoDifference / fuelNum).toFixed(2));
     }
 
     const newLog: FuelEntry = {
@@ -154,7 +154,7 @@ export default function FuelLogsManager({
       fuelFilled: fuelNum,
       pricePerUnit: priceNum,
       totalCost: costNum,
-      mileage: calculatedMileage,
+      efficiency: calculatedEfficiency,
       notes: notes.trim(),
     };
 
@@ -397,9 +397,9 @@ export default function FuelLogsManager({
                     {log.totalCost.toFixed(1)} <span className="text-[10px] text-slate-500">{currency}</span>
                   </td>
                   <td className="py-3 text-right text-indigo-400 font-bold font-mono">
-                    {log.mileage ? (
+                    {log.efficiency ? (
                       <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded px-1.5 py-0.5">
-                        {log.mileage} {activeVehicle.odometerUnit === "Km" ? "Km/L" : "MPG"}
+                        {log.efficiency} {activeVehicle.odometerUnit === "Km" ? "Km/L" : "MPG"}
                       </span>
                     ) : (
                       <span className="text-slate-600 text-[10px] font-normal italic">Pending...</span>

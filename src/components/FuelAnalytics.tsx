@@ -19,10 +19,10 @@ export default function FuelAnalytics({ activeVehicle, logs, currency = "PKR" }:
   const totalCost = activeLogs.reduce((sum, log) => sum + log.totalCost, 0);
   const totalLiters = activeLogs.reduce((sum, log) => sum + log.fuelFilled, 0);
   
-  const logsWithMileage = activeLogs.filter((log) => log.mileage !== undefined);
-  const avgMileage =
-    logsWithMileage.length > 0
-      ? parseFloat((logsWithMileage.reduce((sum, log) => sum + (log.mileage || 0), 0) / logsWithMileage.length).toFixed(2))
+  const logsWithEfficiency = activeLogs.filter((log) => log.efficiency !== undefined);
+  const avgEfficiency =
+    logsWithEfficiency.length > 0
+      ? parseFloat((logsWithEfficiency.reduce((sum, log) => sum + (log.efficiency || 0), 0) / logsWithEfficiency.length).toFixed(2))
       : null;
 
   const odometerUnit = activeVehicle?.odometerUnit || "Km";
@@ -75,9 +75,9 @@ export default function FuelAnalytics({ activeVehicle, logs, currency = "PKR" }:
             <TrendingUp size={11} className="text-emerald-400" /> Avg Efficiency
           </div>
           <div className="mt-1.5 text-base font-bold text-slate-100 font-mono flex items-baseline gap-1">
-            {avgMileage ? (
+            {avgEfficiency ? (
               <>
-                <span className="text-emerald-400">{avgMileage}</span>
+                <span className="text-emerald-400">{avgEfficiency}</span>
                 <span className="text-[10px] font-semibold text-slate-400">{efficiencyUnit}</span>
               </>
             ) : (
@@ -109,15 +109,15 @@ export default function FuelAnalytics({ activeVehicle, logs, currency = "PKR" }:
         </div>
       </div>
 
-      {/* Chart 1: Mileage trend (if available) with Emerald Theme */}
-      {logsWithMileage.length > 0 && (
+      {/* Chart 1: Efficiency trend (if available) with Emerald Theme */}
+      {logsWithEfficiency.length > 0 && (
         <div className="space-y-2 relative z-10">
           <div className="flex justify-between items-center text-xs font-semibold text-slate-300">
             <span>Fuel Efficiency Trend ({efficiencyUnit})</span>
           </div>
           <div className="h-44 w-full bg-slate-950/60 rounded-xl p-2 border border-emerald-500/10">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData.filter((d) => d.mileage > 0)}>
+              <LineChart data={chartData.filter((d) => d.efficiency > 0)}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#111827" />
                 <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#6b7280" }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 9, fill: "#6b7280" }} tickLine={false} axisLine={false} />
@@ -126,7 +126,7 @@ export default function FuelAnalytics({ activeVehicle, logs, currency = "PKR" }:
                 />
                 <Line
                   type="monotone"
-                  dataKey="mileage"
+                  dataKey="efficiency"
                   name="Efficiency"
                   stroke="#10b981"
                   strokeWidth={2.5}
@@ -159,12 +159,12 @@ export default function FuelAnalytics({ activeVehicle, logs, currency = "PKR" }:
         </div>
       </div>
 
-      <div className="bg-emerald-950/30 border border-emerald-500/20 rounded-xl p-3.5 flex gap-2.5 text-xs text-emerald-200 leading-relaxed relative z-10">
-        <Info size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-        <p>
-          Your vehicle efficiency is affected by gear shifts, engine tuning, tyre pressures, and fuel type. Try asking the <strong className="text-emerald-300">AI Assistant</strong> for eco-friendly troubleshooting tips!
-        </p>
-      </div>
+        <div className="bg-emerald-950 border border-emerald-500/50 rounded-xl p-4 flex gap-3 text-xs text-emerald-100 leading-relaxed relative z-10 shadow-lg shadow-emerald-900/50">
+          <Info size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+          <p>
+            Your vehicle efficiency is affected by gear shifts, engine tuning, tyre pressures, and fuel type. Try asking the <strong className="text-emerald-300">AI Assistant</strong> for eco-friendly troubleshooting tips!
+          </p>
+        </div>
     </div>
   );
 }
