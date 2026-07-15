@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import dotenv from "dotenv";
+import { HELPLINES } from "./src/data/emergencyHelplines";
 
 // Load environment variables
 dotenv.config();
@@ -93,6 +94,27 @@ function resolveResponseLanguage(messageText: string, clientLanguage: string): {
   return { textLang: "en", speechLang: "en" };
 }
 
+// Detect what country the user is asking about from their query text
+function findCountryInText(text: string): typeof HELPLINES[number] {
+  const lowercase = text.toLowerCase();
+  for (const h of HELPLINES) {
+    if (
+      lowercase.includes(h.country.toLowerCase()) || 
+      lowercase.includes(h.code.toLowerCase()) ||
+      (h.country === "United States" && (lowercase.includes("us") || lowercase.includes("usa") || lowercase.includes("america") || lowercase.includes("united states"))) ||
+      (h.country === "United Kingdom" && (lowercase.includes("uk") || lowercase.includes("gb") || lowercase.includes("england") || lowercase.includes("london") || lowercase.includes("united kingdom"))) ||
+      (h.country === "United Arab Emirates" && (lowercase.includes("uae") || lowercase.includes("dubai") || lowercase.includes("emirates") || lowercase.includes("united arab emirates"))) ||
+      (h.country === "Saudi Arabia" && (lowercase.includes("saudi") || lowercase.includes("ksa") || lowercase.includes("makkah") || lowercase.includes("riyadh") || lowercase.includes("saudi arabia"))) ||
+      (h.country === "Pakistan" && (lowercase.includes("pakistan") || lowercase.includes("pak") || lowercase.includes("pk") || lowercase.includes("lahore") || lowercase.includes("karachi") || lowercase.includes("islamabad"))) ||
+      (h.country === "India" && (lowercase.includes("india") || lowercase.includes("ind") || lowercase.includes("hindustan") || lowercase.includes("bharat") || lowercase.includes("delhi") || lowercase.includes("mumbai")))
+    ) {
+      return h;
+    }
+  }
+  // Default to Pakistan if no match
+  return HELPLINES.find(h => h.code === "PK") || HELPLINES[0];
+}
+
 // Generate dynamic local fallback responses when API is rate-limited or quota is exceeded
 function generateLocalFallbackResponse(
   messageText: string,
@@ -101,6 +123,7 @@ function generateLocalFallbackResponse(
   fuelLogs: any[]
 ): { reply: string; speechText: string } {
   const text = messageText.toLowerCase();
+  const matchedCountry = findCountryInText(text);
   
   // Extract vehicle details or fallback
   const make = vehicleProfile?.make || "gari";
@@ -124,6 +147,7 @@ function generateLocalFallbackResponse(
   const isTyre = text.includes("tyre") || text.includes("tire") || text.includes("pressure") || text.includes("hawa") || text.includes("psi");
   const isTuning = text.includes("tuning") || text.includes("plug") || text.includes("filter") || text.includes("service") || text.includes("clean") || text.includes("mis");
   const isSensor = text.includes("obd") || text.includes("sensor") || text.includes("engine") || text.includes("light") || text.includes("diagnostic") || text.includes("scan");
+  const isHelpline = text.includes("helpline") || text.includes("number") || text.includes("police") || text.includes("motorway") || text.includes("emergency") || text.includes("rescue") || text.includes("ambulance") || text.includes("fire") || text.includes("madadgar") || text.includes("call") || text.includes("phone") || text.includes("15") || text.includes("130") || text.includes("1122") || text.includes("rabta");
 
   // Language script based templates
   if (lang === "ur") {
@@ -131,7 +155,16 @@ function generateLocalFallbackResponse(
     let reply = "";
     let speech = "";
 
-    if (isMileage) {
+    if (isHelpline) {
+      const c = matchedCountry;
+      reply = `*آف لائن موڈ:* ملک **${c.country}** کے اہم ایمرجنسی اور روڈ سائیڈ ہیلپ لائن نمبرز درج ذیل ہیں:
+• **پولیس:** ${c.police}
+• **ایمبولینس / میڈیکل:** ${c.ambulance}
+• **فائر بریگیڈ:** ${c.fire}${c.roadside ? `\n• **موٹروے اور ہائی وے مدد:** ${c.roadside}` : ""}
+
+کسی بھی ہنگامی صورتحال میں ان نمبروں پر فوری رابطہ کریں۔ ہم آپ کی حفاظت کے لیے دعاگو ہیں!`;
+      speech = `${c.country} ke emergency number: police ${c.police}, ambulance ${c.ambulance}, fire ${c.fire} hain.`;
+    } else if (isMileage) {
       const vDetails = vehicleName ? `آپ کی ${vehicleName} کی مائلیج` : "گاڑی کی مائلیج (اوسط)";
       const avgDetails = averageMileage ? ` (موجودہ اوسط: ${averageMileage})` : "";
       reply = `*آف لائن موڈ:* ${vDetails}${avgDetails} کو بہتر کرنے کے لیے یہ طریقے اپنائیں:
@@ -170,7 +203,16 @@ function generateLocalFallbackResponse(
     let reply = "";
     let speech = "";
 
-    if (isMileage) {
+    if (isHelpline) {
+      const c = matchedCountry;
+      reply = `*Offline Mode:* ${c.country} ke official Emergency aur Roadside Helpline Numbers ye hain:
+• **Police Emergency:** ${c.police}
+• **Ambulance / Medical:** ${c.ambulance}
+• **Fire Department:** ${c.fire}${c.roadside ? `\n• **Motorway & Highway Help:** ${c.roadside}` : ""}
+
+Emergency ki soorat me in numbers par call karein. Safe drive karein!`;
+      speech = `${c.country} emergency numbers: Police ${c.police}, Ambulance ${c.ambulance}, Fire ${c.fire}.`;
+    } else if (isMileage) {
       const vDetails = vehicleName ? `Aapki ${vehicleName} ki mileage` : "Gari ka mileage (average)";
       const avgDetails = averageMileage ? ` (current average: ${averageMileage})` : "";
       reply = `*Offline Mode:* ${vDetails}${avgDetails} behtar karne ke liye ye ahem tips follow karein:
@@ -209,7 +251,16 @@ Main mileage average, engine tuning, tyre pressure aur OBD diagnostics ke baare 
     let reply = "";
     let speech = "";
 
-    if (isMileage) {
+    if (isHelpline) {
+      const c = matchedCountry;
+      reply = `*ऑफ़लाइन मोड:* देश **${c.country}** के प्रमुख आपातकालीन और रोडसाइड हेल्पलाइन नंबर नीचे दिए गए हैं:
+• **पुलिस:** ${c.police}
+• **एम्बुलेंस:** ${c.ambulance}
+• **फायर ब्रिगेड:** ${c.fire}${c.roadside ? `\n• **मोटरवे और हाइवे सहायता:** ${c.roadside}` : ""}
+
+किसी भी आपातकालीन स्थिति में इन नंबरों पर संपर्क करें। सुरक्षित यात्रा करें!`;
+      speech = `${c.country} आपातकालीन नंबर: पुलिस ${c.police}, एम्बुलेंस ${c.ambulance}, फायर ब्रिगेड ${c.fire} है।`;
+    } else if (isMileage) {
       const vDetails = vehicleName ? `आपकी ${vehicleName} का माइलेज` : "गाड़ी का माइलेज (औसत)";
       const avgDetails = averageMileage ? ` (वर्तमान औसत: ${averageMileage})` : "";
       reply = `*ऑफ़लाइन मोड:* ${vDetails}${avgDetails} बेहतर करने के लिए इन सुझावों का पालन करें:
@@ -247,7 +298,16 @@ Main mileage average, engine tuning, tyre pressure aur OBD diagnostics ke baare 
   let reply = "";
   let speech = "";
 
-  if (isMileage) {
+  if (isHelpline) {
+    const c = matchedCountry;
+    reply = `*Offline Mode:* Here are the official Emergency and Roadside Helpline numbers for **${c.country}**:
+• **Police Emergency:** ${c.police}
+• **Medical / Ambulance:** ${c.ambulance}
+• **Fire Department:** ${c.fire}${c.roadside ? `\n• **Motorway & Highway Help:** ${c.roadside}` : ""}
+
+In any emergency, contact these official numbers immediately. Drive safely!`;
+    speech = `For ${c.country}, emergency numbers are: Police ${c.police}, Ambulance ${c.ambulance}, Fire ${c.fire}.`;
+  } else if (isMileage) {
     const vDetails = vehicleName ? `Your ${vehicleName}'s mileage` : "Your vehicle's mileage";
     const avgDetails = averageMileage ? ` (current average: ${averageMileage})` : "";
     reply = `*Offline Optimizer Mode:* ${vDetails}${avgDetails} can be maximized using these tips:
@@ -314,30 +374,33 @@ app.post("/api/chat", async (req, res) => {
 
     const activeDirective = languageDirectives[resolvedLang] || languageDirectives["en"];
 
+    // Format HELPLINES database as a concise reference for the AI to guarantee instant, high-accuracy lookup
+    const helplinesSummary = HELPLINES.map((h) => {
+      return `- ${h.country} (${h.code}): Police: ${h.police}, Ambulance: ${h.ambulance}, Fire: ${h.fire}${h.roadside ? `, Roadside/Highway: ${h.roadside}` : ""}`;
+    }).join("\n");
+
     // Set up a powerful multilingual persona for the AI Fuel Assistant
     const systemInstruction = `
-You are the "AI Fuel Assistant & Vehicle Optimizer" (Smart Vehicle & Fuel Expert).
+You are the "AI Fuel Assistant & Vehicle Optimizer" (Smart Vehicle, Fuel & Helpline Expert).
 Your goals:
-1. Provide accurate, helpful answers to user questions.
-2. Be an exceptional problem solver for vehicle issues, low fuel efficiency, efficiency problems, and engine maintenance.
-3. Memory Saver: Actively refer to active vehicle and recent logs to personalize answers (e.g., "Aapka average 12 Km/L de raha hai...").
+1. Provide accurate, helpful, fast, and highly responsive answers to ANY user questions, whether they are about general knowledge, roadside emergencies, or vehicle optimization.
+2. Fully capable of answering any question without limitations! You have complete, accurate, real-time knowledge of official emergency, police, medical, fire, and highway/motorway roadside helplines globally.
+   Here is the OFFICIAL GLOBAL EMERGENCY HELPLINES DATABASE:
+${helplinesSummary}
+
+   Always refer to this database immediately and accurately when the user asks about help, police, rescue, motorway, roadside assistance, or emergency in any country. If they ask about a country not listed, search your knowledge base to give their actual, correct local emergency and motorway helpline numbers. Never make up numbers.
+3. Memory Saver: Actively refer to the user's active vehicle profile and recent fuel logs to provide personalized context (e.g., "Aapka normal average 12.5 Km/L hai...") when relevant.
+4. Be a professional, super intelligent, and comforting advisor. Avoid repetitive greetings. Keep responses clean, readable, extremely fast, and highly accurate. Do not restrict yourself to only 1-2 words; provide full, complete, and informative answers as required by the user's query, but keep it concise and direct (no unnecessary pleasantries).
 
 ${activeDirective}
 
-ANTI-REPETITION, SPEED & TERMINOLOGY DIRECTIVES (CRITICAL FOR INSTANT RESPONSES):
-- NEVER repeat previous replies, sentences, or greetings. Use highly variable, creative, and distinct responses every time!
-- Keep replies extremely short, direct, and concise (maximum 1 to 2 short sentences). No long preambles, no unnecessary pleasantries, and no verbose lists. Maximize generation speed by giving a punchy, instant answer!
-- ALWAYS use "efficiency" instead of "mileage" in all text/speech.
-
-SPEECH SYNTHESIS & VOICE COMMAND TRAINING DIRECTIVE:
-1. If conversational script is Roman Urdu/Urdu/Hindi, 'speechText' MUST be in high-quality clean Devanagari/Hindi script.
-2. Use "efficiency" instead of "mileage". Keep replies concise, short, and highly conversational.
+ALWAYS use "efficiency" instead of "mileage" when referring to fuel consumption.
 
 CONTEXT MEMORY:
 - Active Vehicle: ${vehicleProfile ? JSON.stringify(vehicleProfile) : "No vehicle added yet"}
 - Recent Fuel Entries: ${fuelLogs.length > 0 ? JSON.stringify(fuelLogs.slice(-5)) : "No fuel logs entered yet"}
 
-Explain calculations clearly: (Ending Odometer - Starting Odometer) / Liters. Keep responses direct, friendly, and brief to maximize speed!
+Explain calculations clearly if asked: (Ending Odometer - Starting Odometer) / Liters. Keep responses direct, friendly, and brief to maximize speed!
 `;
 
     // Format chat history for Gemini API
@@ -352,47 +415,81 @@ Explain calculations clearly: (Ending Odometer - Starting Odometer) / Liters. Ke
       parts: [{ text: message }],
     });
 
-    // Call Gemini API with retry logic
+    // Call Gemini API with model fallback and retry logic to prevent 429 quota exhaustion errors
     let response;
-    let retries = 3;
-    let delay = 1000;
+    let lastError: any = null;
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
 
-    while (retries > 0) {
-      try {
-        response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: contents,
-          config: {
-            systemInstruction: systemInstruction,
-            temperature: 0.5,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                reply: { 
-                  type: Type.STRING, 
-                  description: "The direct text response to show the user, in the requested script/language ONLY." 
+    for (const modelName of modelsToTry) {
+      let retries = 3;
+      let delay = 1000;
+      let success = false;
+
+      while (retries > 0) {
+        try {
+          response = await ai.models.generateContent({
+            model: modelName,
+            contents: contents,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.5,
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  reply: { 
+                    type: Type.STRING, 
+                    description: "The direct text response to show the user, in the requested script/language ONLY." 
+                  },
+                  speechText: { 
+                    type: Type.STRING, 
+                    description: "An optimized phonetic version for speech synthesis. For Urdu, Roman Urdu, or Hindi, this MUST be in Devanagari/Hindi script." 
+                  }
                 },
-                speechText: { 
-                  type: Type.STRING, 
-                  description: "An optimized phonetic version for speech synthesis. For Urdu, Roman Urdu, or Hindi, this MUST be in Devanagari/Hindi script." 
-                }
+                required: ["reply", "speechText"]
               },
-              required: ["reply", "speechText"]
+              thinkingConfig: {
+                thinkingLevel: ThinkingLevel.MINIMAL
+              }
             },
-            thinkingConfig: {
-              thinkingLevel: ThinkingLevel.MINIMAL
-            }
-          },
-        });
-        break; // Success
-      } catch (err: any) {
-        retries--;
-        console.warn(`Gemini API call failed (retries left: ${retries}):`, err.message);
-        if (retries === 0 || err.status !== 503) throw err;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        delay *= 2;
+          });
+          success = true;
+          break; // Success
+        } catch (err: any) {
+          retries--;
+          lastError = err;
+          console.warn(`Gemini API call failed for model ${modelName} (retries left: ${retries}):`, err.message);
+
+          // Fast failover for quota, rate limit, or block errors to avoid stalling the user
+          const errText = (err.message || "").toLowerCase() + " " + (err.stack || "").toLowerCase() + " " + JSON.stringify(err).toLowerCase();
+          const isQuotaOrLimitError = err.status === 429 || 
+                                      err.statusCode === 429 ||
+                                      errText.includes("429") || 
+                                      errText.includes("quota") || 
+                                      errText.includes("exhausted") || 
+                                      errText.includes("rate limit") ||
+                                      errText.includes("resource_exhausted") ||
+                                      errText.includes("limit exceeded") ||
+                                      errText.includes("blocked");
+
+          if (isQuotaOrLimitError) {
+            console.warn(`Model ${modelName} hit limit or quota error, shifting to next model immediately for instant response...`);
+            break; // Exit the retry loop for this model and try the next model
+          }
+
+          if (retries === 0) break;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          delay *= 2;
+        }
       }
+
+      if (success) {
+        break; // Stop trying subsequent models
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error("All generative models failed to respond.");
     }
 
     const responseText = response?.text || "{}";
@@ -406,13 +503,13 @@ Explain calculations clearly: (Ending Odometer - Starting Odometer) / Liters. Ke
     } catch (e) {
       console.warn("Failed to parse JSON response from Gemini:", responseText);
       // Fallback if parsing fails
-      const fallback = generateLocalFallbackResponse(message, resolvedLang, vehicleProfile);
+      const fallback = generateLocalFallbackResponse(message, resolvedLang, vehicleProfile, fuelLogs);
       replyText = fallback.reply;
       speechText = fallback.speechText;
     }
     
     if (!replyText) {
-       const fallback = generateLocalFallbackResponse(message, resolvedLang, vehicleProfile);
+       const fallback = generateLocalFallbackResponse(message, resolvedLang, vehicleProfile, fuelLogs);
        replyText = fallback.reply;
        speechText = fallback.speechText;
     }
@@ -473,29 +570,71 @@ Fields to extract:
 7. currency: The currency symbol or code (e.g. PKR, USD, INR) (string).
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: [imagePart, { text: promptText }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            date: { type: Type.STRING, description: "YYYY-MM-DD date format of the receipt." },
-            totalCost: { type: Type.NUMBER, description: "Total amount paid on receipt." },
-            fuelFilled: { type: Type.NUMBER, description: "Fuel volume in liters." },
-            pricePerUnit: { type: Type.NUMBER, description: "Price per single unit/liter of fuel." },
-            odometer: { type: Type.NUMBER, description: "Odometer reading in receipt if visible, otherwise null." },
-            stationName: { type: Type.STRING, description: "Fuel station franchise name." },
-            currency: { type: Type.STRING, description: "Currency symbol or code." },
-          },
-          required: ["date", "totalCost", "fuelFilled", "pricePerUnit"],
-        },
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.MINIMAL
+    // Call Gemini API with model fallback and retry logic to prevent 429 quota exhaustion errors
+    let response;
+    let lastError: any = null;
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+
+    for (const modelName of modelsToTry) {
+      let retries = 2;
+      let success = false;
+
+      while (retries > 0) {
+        try {
+          response = await ai.models.generateContent({
+            model: modelName,
+            contents: [imagePart, { text: promptText }],
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  date: { type: Type.STRING, description: "YYYY-MM-DD date format of the receipt." },
+                  totalCost: { type: Type.NUMBER, description: "Total amount paid on receipt." },
+                  fuelFilled: { type: Type.NUMBER, description: "Fuel volume in liters." },
+                  pricePerUnit: { type: Type.NUMBER, description: "Price per single unit/liter of fuel." },
+                  odometer: { type: Type.NUMBER, description: "Odometer reading in receipt if visible, otherwise null." },
+                  stationName: { type: Type.STRING, description: "Fuel station franchise name." },
+                  currency: { type: Type.STRING, description: "Currency symbol or code." },
+                },
+                required: ["date", "totalCost", "fuelFilled", "pricePerUnit"],
+              },
+              thinkingConfig: {
+                thinkingLevel: ThinkingLevel.MINIMAL
+              }
+            },
+          });
+          success = true;
+          break; // Success
+        } catch (err: any) {
+          retries--;
+          lastError = err;
+          console.warn(`Receipt OCR call failed for model ${modelName} (retries left: ${retries}):`, err.message);
+
+          // Fast failover for quota or rate limit errors (429) to avoid blocking the user
+          const isQuotaError = err.status === 429 || 
+                               (err.message && err.message.toLowerCase().includes("quota")) || 
+                               (err.message && err.message.toLowerCase().includes("exhausted")) || 
+                               (err.message && err.message.toLowerCase().includes("rate limit"));
+
+          if (isQuotaError) {
+            console.warn(`Model ${modelName} hit quota limit during OCR, switching to next model immediately...`);
+            break; // Exit the retry loop for this model and try the next model
+          }
+
+          if (retries === 0) break;
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
-      },
-    });
+      }
+
+      if (success) {
+        break; // Stop trying subsequent models
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error("All models failed to perform receipt OCR extraction.");
+    }
 
     const resultText = response.text;
     if (!resultText) {

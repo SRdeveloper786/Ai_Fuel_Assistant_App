@@ -29,16 +29,20 @@ import {
   ChevronRight,
   Flame,
   FileText,
-  Sparkles
+  Sparkles,
+  Phone,
+  X
 } from "lucide-react";
+
+import { EmergencyHelplines } from "./EmergencyHelplines";
 
 interface SmartFeaturesProps {
   activeVehicle: Vehicle | null;
   logs: FuelEntry[];
   currentLanguage: "en" | "ur" | "roman" | "hi" | "ar";
   currency?: string;
-  activeSubTab?: "obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget";
-  onSubTabChange?: (tab: "obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget") => void;
+  activeSubTab?: "obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget" | "emergency" | "data-control";
+  onSubTabChange?: (tab: "obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget" | "emergency" | "data-control") => void;
   onAddLog?: (newLog: FuelEntry) => void;
 }
 
@@ -227,10 +231,10 @@ export function SmartFeatures({
   onAddLog
 }: SmartFeaturesProps) {
   // Features interactive state
-  const [localSubTab, setLocalSubTab] = useState<"obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget">("bento");
+  const [localSubTab, setLocalSubTab] = useState<"obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget" | "emergency" | "data-control">("bento");
 
   const activeSubTab = controlledSubTab !== undefined ? controlledSubTab : localSubTab;
-  const setActiveSubTab = (tab: "obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget") => {
+  const setActiveSubTab = (tab: "obd" | "maintenance" | "theft" | "troubleshoot" | "handsfree" | "bento" | "budget" | "emergency" | "data-control") => {
     if (onSubTabChange) {
       onSubTabChange(tab);
     } else {
@@ -321,6 +325,7 @@ export function SmartFeatures({
         vehicleId: activeVehicle.id,
         date: new Date().toISOString().split('T')[0],
         odometer: nextOdometer,
+        category: 'Fuel',
         fuelFilled: fuelFilled,
         pricePerUnit: pricePerUnit,
         totalCost: totalCost,
@@ -389,6 +394,54 @@ export function SmartFeatures({
   const [showGuidelines, setShowGuidelines] = useState(true);
   const recognitionRef = useRef<any>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Prominent Disclosure Modal States
+  const [showBluetoothDisclosure, setShowBluetoothDisclosure] = useState(false);
+  const [showMicDisclosure, setShowMicDisclosure] = useState(false);
+
+  const toggleHandsFreeVoiceCoPilot = () => {
+    if (handsFreeActive) {
+      setHandsFreeActive(false);
+    } else {
+      const isAccepted = localStorage.getItem("microphone_disclosure_accepted") === "true";
+      if (isAccepted) {
+        setHandsFreeActive(true);
+      } else {
+        setShowMicDisclosure(true);
+      }
+    }
+  };
+
+  const handleAcceptMicDisclosure = () => {
+    localStorage.setItem("microphone_disclosure_accepted", "true");
+    setShowMicDisclosure(false);
+    setHandsFreeActive(true);
+  };
+
+  const handleDenyMicDisclosure = () => {
+    setShowMicDisclosure(false);
+    setSpeechOutput("Voice mic was declined by user.");
+  };
+
+  const triggerStartBluetoothScan = () => {
+    const isAccepted = localStorage.getItem("bluetooth_disclosure_accepted") === "true";
+    if (isAccepted) {
+      handleStartBluetoothScan();
+    } else {
+      setShowBluetoothDisclosure(true);
+    }
+  };
+
+  const handleAcceptBluetoothDisclosure = () => {
+    localStorage.setItem("bluetooth_disclosure_accepted", "true");
+    setShowBluetoothDisclosure(false);
+    handleStartBluetoothScan();
+  };
+
+  const handleDenyBluetoothDisclosure = () => {
+    setShowBluetoothDisclosure(false);
+    setBluetoothError("OBD-II Bluetooth scanning requires your explicit agreement to scan for hardware adapters.");
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -1115,6 +1168,22 @@ export function SmartFeatures({
           >
             Budget Planner
           </button>
+          <button
+            onClick={() => setActiveSubTab("emergency")}
+            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+              activeSubTab === "emergency" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Emergency
+          </button>
+          <button
+            onClick={() => setActiveSubTab("data-control")}
+            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+              activeSubTab === "data-control" ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Data Control
+          </button>
         </div>
       </div>
 
@@ -1176,7 +1245,17 @@ export function SmartFeatures({
               </p>
             </div>
 
-            {/* Guide 5: Offline Fixes */}
+            {/* Guide 5: Data Control Center */}
+            <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-850 space-y-1">
+              <p className="text-[11px] font-bold text-slate-200 flex items-center gap-1">
+                <span>⚙️</span> Data Control Center
+              </p>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                <strong>How to use:</strong> Access the <strong>"Data Control Center"</strong> to manage your local sandbox, wipe stored logs, or export your driving data for external use.
+              </p>
+            </div>
+
+            {/* Guide 6: Offline Fixes */}
             <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-850 space-y-1">
               <p className="text-[11px] font-bold text-slate-200 flex items-center gap-1">
                 <span>📚</span> Offline Troubleshooting
@@ -1250,26 +1329,76 @@ export function SmartFeatures({
             </div>
           </div>
 
-          {/* Quick Interactive Mileage Estimator Card */}
-          <div className="bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
-            <h4 className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 uppercase">
-              🧮 Smart Distance & Trip Cost Estimator
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Trip Distance (km)</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 150"
-                  value={tripDistance}
-                  onChange={(e) => setTripDistance(Number(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 mt-1"
-                />
+          {/* Quick Interactive Mileage Estimator and Voice Co-Pilot Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Quick Interactive Mileage Estimator Card */}
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl space-y-3">
+              <h4 className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 uppercase font-sans tracking-wide">
+                🧮 Smart Distance & Trip Cost Estimator
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Trip Distance (km)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 150"
+                    value={tripDistance}
+                    onChange={(e) => setTripDistance(Number(e.target.value) || 0)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 mt-1"
+                  />
+                </div>
+                <div className="flex flex-col justify-center bg-slate-950 p-2.5 rounded-xl border border-slate-800/60">
+                  <p className="text-[9px] text-slate-500 uppercase font-bold">Estimated Cost & Vol</p>
+                  <p className="text-xs font-bold text-slate-200 mt-1">{(calculatedAverageMileage > 0 ? tripDistance / calculatedAverageMileage : tripDistance / 12).toFixed(1)} Liters</p>
+                  <p className="text-xs font-extrabold text-emerald-400">{currency} {Math.round((calculatedAverageMileage > 0 ? tripDistance / calculatedAverageMileage : tripDistance / 12) * currentFuelPrice).toLocaleString()}</p>
+                </div>
               </div>
-              <div className="flex flex-col justify-center bg-slate-950 p-2.5 rounded-xl border border-slate-800/60">
-                <p className="text-[9px] text-slate-500 uppercase font-bold">Estimated Cost & Vol</p>
-                <p className="text-xs font-bold text-slate-200 mt-1">{(calculatedAverageMileage > 0 ? tripDistance / calculatedAverageMileage : tripDistance / 12).toFixed(1)} Liters</p>
-                <p className="text-xs font-extrabold text-emerald-400">{currency} {Math.round((calculatedAverageMileage > 0 ? tripDistance / calculatedAverageMileage : tripDistance / 12) * currentFuelPrice).toLocaleString()}</p>
+            </div>
+
+            {/* 🎙️ Hands-free Driving Voice Co-Pilot Card */}
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl space-y-3 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-indigo-400 flex items-center gap-1.5 uppercase font-sans tracking-wide">
+                    🎙️ Hands-free Driving Co-Pilot
+                  </h4>
+                  <span className={`w-2 h-2 rounded-full ${voiceCommandActive ? "bg-green-500 animate-pulse" : "bg-slate-700"}`} />
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-1">
+                  Activate voice-activated driving assistant. Speak queries like "check diagnostics", "gari ki halat", or "fuel efficiency average".
+                </p>
+                {handsFreeActive && speechOutput && (
+                  <div className="mt-2 text-[10px] text-indigo-300 italic bg-slate-950 px-2.5 py-1.5 rounded-lg border border-indigo-500/10">
+                    "{speechOutput}"
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-800/40">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setDrivingHubLang("en")}
+                    className={`text-[8px] px-1.5 py-0.5 rounded font-extrabold uppercase transition ${drivingHubLang === "en" ? "bg-indigo-600 text-white" : "bg-slate-950 text-slate-500 hover:text-slate-300"}`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    onClick={() => setDrivingHubLang("hi")}
+                    className={`text-[8px] px-1.5 py-0.5 rounded font-extrabold uppercase transition ${drivingHubLang === "hi" ? "bg-indigo-600 text-white" : "bg-slate-950 text-slate-500 hover:text-slate-300"}`}
+                  >
+                    Roman / Urdu / Hindi
+                  </button>
+                </div>
+                <button
+                  onClick={toggleHandsFreeVoiceCoPilot}
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    handsFreeActive
+                      ? "bg-red-600 hover:bg-red-500 text-white animate-pulse"
+                      : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                  }`}
+                >
+                  {handsFreeActive ? <MicOff size={11} /> : <Mic size={11} />}
+                  {handsFreeActive ? "Stop Co-Pilot" : "Start Co-Pilot"}
+                </button>
               </div>
             </div>
           </div>
@@ -1321,7 +1450,7 @@ export function SmartFeatures({
                 </div>
                 <div className="flex justify-center gap-3 flex-wrap">
                   <button
-                    onClick={handleStartBluetoothScan}
+                    onClick={triggerStartBluetoothScan}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black rounded-xl transition-all shadow-md hover:shadow-indigo-500/20 flex items-center gap-2 cursor-pointer group"
                   >
                     <Bluetooth size={14} className="group-hover:scale-110 transition-transform" />
@@ -2180,6 +2309,158 @@ export function SmartFeatures({
 
                 return alerts;
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeSubTab === "emergency" && (
+        <div className="space-y-4">
+          <EmergencyHelplines />
+        </div>
+      )}
+
+      {activeSubTab === "data-control" && (
+        <div className="bg-slate-950 dark:bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            ⚙️ Data Control Center
+          </h3>
+          <p className="text-xs text-slate-400">Manage your local storage and data configurations.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                if (confirm("Are you sure you want to wipe all local data? This action is irreversible.")) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg cursor-pointer transition"
+            >
+              Wipe All Local Data
+            </button>
+            <button
+              onClick={() => {
+                const data = JSON.stringify(localStorage);
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'driving_data_export.json';
+                a.click();
+              }}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg cursor-pointer transition"
+            >
+              Export Data
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Prominent Bluetooth Access Disclosure Modal */}
+      {showBluetoothDisclosure && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 backdrop-blur-sm bg-black/60">
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col space-y-4 text-left">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                <Shield size={20} className="animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-extrabold text-white">Bluetooth Pairing Disclosure</h4>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">Google Play Developer Safety Policy</p>
+              </div>
+              <button 
+                onClick={() => setShowBluetoothDisclosure(false)}
+                className="p-1 rounded bg-slate-950 text-slate-500 hover:text-white transition cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="text-slate-300 text-xs space-y-2.5 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-800/60">
+              <p>
+                Smart Vehicle & Fuel Assistant requests access to your device's <strong>Bluetooth Hardware Transceiver</strong> for the following purpose:
+              </p>
+              <div className="flex items-start gap-2 bg-indigo-950/20 border border-indigo-500/10 p-2 rounded-lg text-[11px] text-indigo-300">
+                <Bluetooth size={14} className="shrink-0 mt-0.5 text-indigo-400" />
+                <span>
+                  <strong>OBD-II Telematics Scan:</strong> To scan for, connect to, and stream engine telematics (RPM, coolant temperatures, vehicle speed, and ECU trouble diagnostic codes) from your physical ELM327 Bluetooth receiver plugged into your car's OBD port.
+                </span>
+              </div>
+              <ul className="list-disc pl-4 text-[11px] text-slate-400 space-y-1">
+                <li>Your local browser will prompt a native Google Chrome/Edge Bluetooth Pairing Selector.</li>
+                <li>No background tracking, background beaconing, or unauthorized scanning is ever performed.</li>
+                <li>All OBD diagnostics and engine metrics remain completely local inside your device's session memory.</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2 justify-end text-xs pt-1">
+              <button
+                onClick={handleDenyBluetoothDisclosure}
+                className="px-3 py-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-300 font-semibold transition cursor-pointer"
+              >
+                Decline
+              </button>
+              <button
+                onClick={handleAcceptBluetoothDisclosure}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-950 transition cursor-pointer"
+              >
+                Agree & Pair OBD-II
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prominent Microphone Access Disclosure Modal (Driving Co-pilot) */}
+      {showMicDisclosure && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 backdrop-blur-sm bg-black/60">
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col space-y-4 text-left">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                <Shield size={20} className="animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-extrabold text-white">Microphone Co-Pilot Disclosure</h4>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">Google Play Developer Safety Policy</p>
+              </div>
+              <button 
+                onClick={() => setShowMicDisclosure(false)}
+                className="p-1 rounded bg-slate-950 text-slate-500 hover:text-white transition cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="text-slate-300 text-xs space-y-2.5 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-800/60">
+              <p>
+                Smart Vehicle & Fuel Assistant requests access to your device's <strong>Microphone / Voice Audio</strong> for the following purpose:
+              </p>
+              <div className="flex items-start gap-2 bg-indigo-950/20 border border-indigo-500/10 p-2 rounded-lg text-[11px] text-indigo-300">
+                <Mic size={14} className="shrink-0 mt-0.5 text-indigo-400" />
+                <span>
+                  <strong>Driving Co-Pilot Voice Commands:</strong> To allow safe, hands-free operation of the application while driving. Voice recognition enables querying "gari ki halat" or "diagnostics" without using your hands.
+                </span>
+              </div>
+              <ul className="list-disc pl-4 text-[11px] text-slate-400 space-y-1">
+                <li>Voice signals are processed transiently via the native Web Speech API in the browser.</li>
+                <li>No background listening, recording, or audio data persistence occurs.</li>
+                <li>You can decline this permission and operate all functions manually via physical UI buttons.</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2 justify-end text-xs pt-1">
+              <button
+                onClick={handleDenyMicDisclosure}
+                className="px-3 py-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-300 font-semibold transition cursor-pointer"
+              >
+                Decline
+              </button>
+              <button
+                onClick={handleAcceptMicDisclosure}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-950 transition cursor-pointer"
+              >
+                Agree & Start Co-Pilot
+              </button>
             </div>
           </div>
         </div>

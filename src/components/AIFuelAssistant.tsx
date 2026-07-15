@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChatMessage, SupportedLanguage, LANGUAGES, Vehicle, FuelEntry } from "../types";
-import { Send, Mic, MicOff, Volume2, VolumeX, RefreshCw, AlertCircle, Play, Square, MessageSquare, Flame, Pin, Trash2, History, Compass, X, Scale, Calculator, Wrench, ChevronDown, CheckCircle, Plus, Info, Zap, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Volume2, VolumeX, RefreshCw, AlertCircle, Play, Square, MessageSquare, Flame, Pin, Trash2, History, Compass, X, Scale, Calculator, Wrench, ChevronDown, CheckCircle, Plus, Info, Zap, Sparkles, Shield } from "lucide-react";
 
 interface AIFuelAssistantProps {
   activeVehicle: Vehicle | null;
@@ -590,6 +590,7 @@ export default function AIFuelAssistant({
   const [autoDetectLanguage, setAutoDetectLanguage] = useState(() => {
     return localStorage.getItem("assistant_auto_detect_lang") === "true";
   });
+  const [showMicDisclosure, setShowMicDisclosure] = useState(false);
 
   // Nested Panel Navigation
   const [activePanel, setActivePanel] = useState<"chat" | "tools" | "voicelog">("chat");
@@ -1016,6 +1017,26 @@ export default function AIFuelAssistant({
         }
       }
     }
+  };
+
+  const handleMicButtonClick = () => {
+    const isAccepted = localStorage.getItem("microphone_disclosure_accepted") === "true";
+    if (isAccepted) {
+      toggleListening();
+    } else {
+      setShowMicDisclosure(true);
+    }
+  };
+
+  const handleAcceptMicDisclosure = () => {
+    localStorage.setItem("microphone_disclosure_accepted", "true");
+    setShowMicDisclosure(false);
+    toggleListening();
+  };
+
+  const handleDenyMicDisclosure = () => {
+    setShowMicDisclosure(false);
+    setErrorMsg("Microphone voice recognition was canceled by the user.");
   };
 
   // Send message to Express server proxy
@@ -1809,6 +1830,21 @@ export default function AIFuelAssistant({
       {/* Input box + dictation buttons */}
       <div className="shrink-0 border-t border-slate-800/60 pt-3">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setActivePanel("chat");
+              handleMicButtonClick();
+            }}
+            className={`p-2.5 rounded-xl transition shadow-md border cursor-pointer ${
+              isListening
+                ? "bg-red-600 border-red-500/20 text-white animate-pulse"
+                : "bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-900 hover:text-slate-200"
+            }`}
+            title={isListening ? "Listening... Click to stop" : "Voice typing (Bol kar likhein)"}
+          >
+            {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+          </button>
+
           <input
             type="text"
             placeholder={LANGUAGES[currentLanguage].placeholder}
@@ -1836,6 +1872,61 @@ export default function AIFuelAssistant({
           </button>
         </div>
       </div>
+
+      {/* Prominent Microphone Access Disclosure Modal */}
+      {showMicDisclosure && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 backdrop-blur-sm bg-black/60">
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col space-y-4 text-left">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 shrink-0">
+                <Shield size={20} className="animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-extrabold text-white">Microphone Access Disclosure</h4>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">Google Play Developer Safety Policy</p>
+              </div>
+              <button 
+                onClick={() => setShowMicDisclosure(false)}
+                className="p-1 rounded bg-slate-950 text-slate-500 hover:text-white transition cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="text-slate-300 text-xs space-y-2.5 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-800/60">
+              <p>
+                Smart Vehicle & Fuel Assistant requests access to your device's <strong>Microphone / Audio recorder</strong> for the following purpose:
+              </p>
+              <div className="flex items-start gap-2 bg-violet-950/20 border border-violet-500/10 p-2 rounded-lg text-[11px] text-violet-300">
+                <Mic size={14} className="shrink-0 mt-0.5 text-violet-400" />
+                <span>
+                  <strong>Voice Commands & Dictation:</strong> To allow you to dictate messages, ask fuel consumption questions, and operate the AI Assistant hands-free via web voice-to-text recognition.
+                </span>
+              </div>
+              <ul className="list-disc pl-4 text-[11px] text-slate-400 space-y-1">
+                <li>Audio signals are processed transiently in real-time by your local browser's Web Speech API.</li>
+                <li>Your voice recordings are **never** stored on our servers, recorded in the background, or shared with third parties.</li>
+                <li>You can deny this permission and type manually with the keyboard.</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2 justify-end text-xs pt-1">
+              <button
+                onClick={handleDenyMicDisclosure}
+                className="px-3 py-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-300 font-semibold transition cursor-pointer"
+              >
+                Decline
+              </button>
+              <button
+                onClick={handleAcceptMicDisclosure}
+                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold shadow-lg shadow-violet-950 transition cursor-pointer"
+              >
+                Agree & Enable Mic
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

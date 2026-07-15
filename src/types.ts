@@ -1,6 +1,7 @@
 export type VehicleType = "Car" | "Motorcycle" | "Rickshaw/Auto" | "Truck/Van" | "Other";
 export type FuelType = "Petrol" | "Diesel" | "CNG" | "LPG" | "Electric";
 export type OdometerUnit = "Km" | "Miles";
+export type LogCategory = 'Fuel' | 'Maintenance' | 'Repair';
 
 export interface Vehicle {
   id: string;
@@ -18,8 +19,9 @@ export interface FuelEntry {
   vehicleId: string;
   date: string;
   odometer: number;
-  fuelFilled: number; // liters or gallons
-  pricePerUnit: number;
+  category: LogCategory;
+  fuelFilled?: number; // liters or gallons (optional for non-fuel)
+  pricePerUnit?: number; // (optional for non-fuel)
   totalCost: number;
   efficiency?: number; // calculated efficiency (Km/L or MPG)
   notes?: string;

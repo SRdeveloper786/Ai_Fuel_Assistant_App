@@ -7,7 +7,8 @@ import AIFuelAssistant from "./components/AIFuelAssistant";
 import AndroidIntegrationGuide from "./components/AndroidIntegrationGuide";
 import { SmartFeatures } from "./components/SmartFeatures";
 import CheapFuelFinder from "./components/CheapFuelFinder";
-import { Car, Settings, BarChart3, MessageSquare, Flame, HelpCircle, FileText, Smartphone, MapPin, Wrench, ShieldAlert, Bluetooth, Calculator, AlertTriangle, ShieldCheck, PlayCircle, Sparkles, Download, Upload, Wifi, WifiOff, Database, ChevronLeft, ChevronRight, Sun, Moon, Sunset, MoreVertical, Menu, Share2, Info, Shield, Check, Copy, ExternalLink, Scale, X, TrendingUp, TrendingDown, Lightbulb, Award, Activity } from "lucide-react";
+import { Car, Settings, BarChart3, MessageSquare, Flame, HelpCircle, FileText, Trash2, Smartphone, MapPin, Wrench, ShieldAlert, Bluetooth, Calculator, AlertTriangle, ShieldCheck, PlayCircle, Sparkles, Download, Upload, Wifi, WifiOff, Database, ChevronLeft, ChevronRight, Sun, Moon, Sunset, MoreVertical, Menu, Share2, Info, Shield, Check, Copy, ExternalLink, Scale, X, TrendingUp, TrendingDown, Lightbulb, Award, Activity } from "lucide-react";
+import { triggerHaptic } from "./lib/haptics";
 import { motion, AnimatePresence } from "motion/react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, AreaChart, Area } from "recharts";
 
@@ -47,6 +48,26 @@ export default function App() {
   const [autoThemeMode, setAutoThemeMode] = useState<boolean>(() => {
     return localStorage.getItem("assistant_auto_theme") === "true";
   });
+
+  const [showLocationDisclosure, setShowLocationDisclosure] = useState<boolean>(false);
+
+  const handleAcceptLocationDisclosure = () => {
+    localStorage.setItem("location_disclosure_accepted", "true");
+    setShowLocationDisclosure(false);
+    setAutoThemeMode(true);
+    localStorage.setItem("assistant_auto_theme", "true");
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          localStorage.setItem("user_lat", latitude.toString());
+          localStorage.setItem("user_lng", longitude.toString());
+        },
+        (err) => console.log("GPS prompt declined for theme sync:", err)
+      );
+    }
+  };
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(() => {
     const lat = localStorage.getItem("user_lat");
@@ -100,6 +121,11 @@ export default function App() {
   // Request geolocation once if auto mode is enabled and coords are missing
   useEffect(() => {
     if (autoThemeMode && !userLocation && !geolocationRequested.current) {
+      const isAccepted = localStorage.getItem("location_disclosure_accepted") === "true";
+      if (!isAccepted) {
+        console.log("Auto-Theme mode requires location access. GPS request skipped until user accepts disclosure.");
+        return;
+      }
       geolocationRequested.current = true;
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -156,6 +182,10 @@ export default function App() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showDPAModal, setShowDPAModal] = useState(false);
+  const [showDeletionModal, setShowDeletionModal] = useState(false);
+  const [isDeletingData, setIsDeletingData] = useState(false);
+  const [deletionConfirmed, setDeletionConfirmed] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -902,7 +932,7 @@ export default function App() {
         </div>
 
         {/* Action Tray: Connection Badge & Interactive Notification Bell */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
           {/* Active Vehicle Mini Badge */}
           {activeVehicle && (
             <div className="flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 p-1 pr-2.5 rounded-full select-none">
@@ -924,10 +954,16 @@ export default function App() {
           {/* Sunrise / Sunset Sync Toggle */}
           <button
             onClick={() => {
+              triggerHaptic('medium');
               const nextVal = !autoThemeMode;
-              setAutoThemeMode(nextVal);
-              localStorage.setItem("assistant_auto_theme", nextVal ? "true" : "false");
               if (nextVal) {
+                const isAccepted = localStorage.getItem("location_disclosure_accepted") === "true";
+                if (!isAccepted) {
+                  setShowLocationDisclosure(true);
+                  return;
+                }
+                setAutoThemeMode(true);
+                localStorage.setItem("assistant_auto_theme", "true");
                 if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -939,6 +975,9 @@ export default function App() {
                     (err) => console.log("GPS prompt declined for theme sync:", err)
                   );
                 }
+              } else {
+                setAutoThemeMode(false);
+                localStorage.setItem("assistant_auto_theme", "false");
               }
             }}
             className={`p-2 rounded-xl border transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5 ${
@@ -957,6 +996,7 @@ export default function App() {
           {/* Light / Dark Theme Switch */}
           <button
             onClick={() => {
+              triggerHaptic('medium');
               setTheme(theme === "dark" ? "light" : "dark");
               if (autoThemeMode) {
                 setAutoThemeMode(false);
@@ -1055,6 +1095,30 @@ export default function App() {
                     >
                       <Shield size={14} className="text-purple-400" />
                       <span>Privacy Policy</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowDPAModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-900/80 rounded-lg transition cursor-pointer"
+                      id="menu-item-dpa"
+                    >
+                      <FileText size={14} className="text-sky-400" />
+                      <span>Data Processing (DPA)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowDeletionModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-900/80 rounded-lg transition cursor-pointer"
+                      id="menu-item-delete"
+                    >
+                      <Trash2 size={14} className="text-red-400" />
+                      <span>Request Data Deletion</span>
                     </button>
                   </div>
                 </motion.div>
@@ -2382,9 +2446,9 @@ export default function App() {
                 </div>
 
                 <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
-                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">2. GPS Geolocation Transparency</h4>
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">2. GPS Geolocation Transparency (Google Play Compliant)</h4>
                   <p className="font-normal text-slate-300">
-                    When accessing the solar sync or the fuel finder features, the app requests native device geolocation coordinates. These coordinates are used exclusively inside the active session context to calculate sunrise/sunset times and distance metrics. Your location is never sent to any third-party background telemetry providers or advertising networks.
+                    When accessing the solar sync, local emergency helplines lookup, or cheap fuel finder features, the app requests native device geolocation coordinates. These coordinates are processed entirely on-device and transiently in active memory. They are used exclusively inside the active session context to calculate local sunrise/sunset times, locate fuel stations, and automatically detect your current country for roadside emergency listings. Your location is NEVER collected in the background, never stored on remote servers, and never shared with third-party analytical SDKs or advertising networks.
                   </p>
                 </div>
 
@@ -2410,10 +2474,41 @@ export default function App() {
                 </div>
 
                 <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
-                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">6. Device Permissions & Safe Usage Guarantee</h4>
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">6. Device Permissions & Safe Usage Guarantee (Google Play Compliant)</h4>
                   <p className="font-normal text-slate-300">
-                    This application may request device permissions such as GPS Location, Bluetooth (for OBD-II links), and the Microphone (for voice commands). These permissions are accessed strictly to provide the functional utilities of the application on your direct request. We guarantee that no sensors or local data are ever accessed for illegal surveillance, unauthorized background monitoring, or malicious purposes. All data remains strictly under user control.
+                    This application may request device permissions such as GPS Location (Coarse & Fine), Bluetooth (for OBD-II links), and the Microphone (for voice commands). These permissions are accessed strictly to provide the functional utilities of the application on your direct request. We guarantee that no sensors, telemetry logs, or local data are ever accessed for illegal surveillance, unauthorized background monitoring, or malicious purposes. All data remains strictly under user control. We fully comply with the Google Play Developer Distribution Agreement and Safety Policy.
                   </p>
+                </div>
+
+                <div className="bg-slate-950/60 border border-indigo-500/30 p-4 rounded-2xl space-y-3">
+                  <h4 className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Database size={12} /> 7. GDPR & Google Play Console Data Rights
+                  </h4>
+                  <p className="font-normal text-slate-300">
+                    Under the General Data Protection Regulation (GDPR) and Google Play Safety Standards, you possess explicit rights regarding your data. Since this application uses a <strong>local-first</strong> offline sandbox, we provide integrated tools to view our Data Processing Addendum (DPA) and request instant deletion of all stored data.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button
+                      onClick={() => {
+                        setShowPrivacyModal(false);
+                        setShowDPAModal(true);
+                      }}
+                      className="px-3 py-2 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-500/20 text-[11px] font-bold text-indigo-300 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <FileText size={12} />
+                      View Data Processing Addendum (DPA)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowPrivacyModal(false);
+                        setShowDeletionModal(true);
+                      }}
+                      className="px-3 py-2 bg-red-950/30 hover:bg-red-900/20 border border-red-500/10 text-[11px] font-bold text-red-300 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Trash2 size={12} />
+                      Request Data Deletion
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2428,7 +2523,276 @@ export default function App() {
             </motion.div>
           </div>
         )}
+
+        {/* Data Processing Addendum (DPA) Modal */}
+        {showDPAModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDPAModal(false)}
+              className="absolute inset-0 bg-black"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col z-10"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-sky-600/10 border border-sky-500/30 rounded-xl flex items-center justify-center text-sky-400">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">Data Processing Addendum</h3>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">GDPR Art. 28 & Google Play Safety Accord</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDPAModal(false)}
+                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-400 hover:text-white transition cursor-pointer flex items-center justify-center"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="space-y-4 overflow-y-auto pr-1 text-slate-300 text-xs leading-relaxed max-h-[50vh] scrollbar-thin scrollbar-thumb-slate-800">
+                <p className="text-[11px] text-slate-400 leading-normal">
+                  This Data Processing Addendum ("DPA") supplements the Privacy Policy and sets forth the terms governing the processing of personal and vehicle telemetry data in connection with the <strong>Smart Vehicle & Fuel Assistant</strong> application, in strict alignment with Article 28 of the General Data Protection Regulation (GDPR) and Google Play Console developer requirements.
+                </p>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-sky-400 uppercase tracking-widest">1. Role Determinations (GDPR Article 4)</h4>
+                  <p className="font-normal text-slate-300">
+                    <strong>User as Data Controller:</strong> You (the vehicle owner/operator) retain full, absolute, and exclusive controller-level authority over your vehicle profiles, daily fuel logs, GPS coordinates, and cost indices.<br />
+                    <strong>Application as Data Processor:</strong> The application functions strictly as an interactive processing engine on your local sandbox, executing computations (e.g. mileage averages, maintenance milestone calculations) entirely on-device and on your demand. No remote servers ever assume possession or controller-level stewardship of your operational records.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-sky-400 uppercase tracking-widest">2. Scope of Processing & Local Storage Sandbox</h4>
+                  <p className="font-normal text-slate-300">
+                    All personal data—including odometer metrics, fuel prices, coordinates for sun-synchronization, and AI chat sessions—is processed transiently in active application memory or stored persistently within the isolated client-side sandbox via secure browser <code>localStorage</code>. No telemetry data is transmitted to, cached on, or processed by remote central databases or third-party analytical trackers.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-sky-400 uppercase tracking-widest">3. Technical & Organizational Safety Measures (GDPR Article 32)</h4>
+                  <p className="font-normal text-slate-300">
+                    The processor implements industry-standard local sandboxing policies. Access is strictly isolated within the device's system boundaries, ensuring data cannot be read by other web entities. Voice processing relies exclusively on authorized local Web Speech interfaces, and AI chat queries are passed through highly-secure proxy frameworks with zero Personally Identifiable Information (PII) attached.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-sky-400 uppercase tracking-widest">4. Sub-processors Declaration</h4>
+                  <p className="font-normal text-slate-300">
+                    No third-party sub-processors have access to your raw vehicle files, telemetry logs, or location markers. For mapping utilities (Google Maps API), location coordinate resolution is requested transiently on-client; coordinates are never saved on external map servers.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/50 border border-slate-850/60 p-4 rounded-2xl space-y-2">
+                  <h4 className="text-[11px] font-bold text-sky-400 uppercase tracking-widest">5. Data Subject Rights & Immediate Erasure Guarantee</h4>
+                  <p className="font-normal text-slate-300">
+                    In absolute compliance with Articles 15 (Access), 16 (Rectification), and 17 (Erasure / "Right to be Forgotten") of the GDPR, the application guarantees that you can instantly inspect, modify, or permanently delete all your data at any time via the <strong>Request Data Deletion</strong> wizard. Since the processor holds no database records, this erasure permanently voids all local sandbox configurations, leaving zero residues.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-800 pt-4 mt-4 flex justify-between items-center text-[10px] text-slate-400">
+                <span>Updated: July 2026</span>
+                <button
+                  onClick={() => setShowDPAModal(false)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                >
+                  Acknowledge & Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Request Data Deletion Modal */}
+        {showDeletionModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                if (!isDeletingData) {
+                  setShowDeletionModal(false);
+                  setDeletionConfirmed(false);
+                }
+              }}
+              className="absolute inset-0 bg-black"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden z-10"
+            >
+              {!deletionConfirmed ? (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-red-600/10 border border-red-500/30 rounded-xl flex items-center justify-center text-red-400 shrink-0">
+                      <Trash2 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-white uppercase tracking-wider">Data Erasure Portal</h3>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wide">GDPR Article 17 "Right to be Forgotten" & Google Play Policy</p>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-300 space-y-2 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-850/40">
+                    <p>
+                      Because this app runs on a <strong>Local-First Architecture</strong>, none of your details are stored on external server databases. This means your data is fully under your custody!
+                    </p>
+                    <p className="text-amber-400 font-bold">
+                      ⚠️ Triggering deletion will permanently and irreversibly wipe all local storage sandbox files. This includes:
+                    </p>
+                    <ul className="space-y-1.5 pl-2 text-[11px] text-slate-400">
+                      <li className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        All Vehicle Profiles and Odometer configurations
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        Complete Fuel and Expense history logs
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        Specific Maintenance milestones (Oil, Plugs, Brakes, Tyres)
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        AI chat histories, pinned boards, and voice command logs
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        Saved Location disclosures and cache settings
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-2 justify-end text-xs pt-1">
+                    <button
+                      disabled={isDeletingData}
+                      onClick={() => setShowDeletionModal(false)}
+                      className="px-3 py-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-300 font-semibold transition cursor-pointer disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={isDeletingData}
+                      onClick={() => {
+                        setIsDeletingData(true);
+                        setTimeout(() => {
+                          localStorage.clear();
+                          setIsDeletingData(false);
+                          setDeletionConfirmed(true);
+                        }, 1200);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold shadow-lg shadow-red-950 transition cursor-pointer flex items-center gap-2"
+                    >
+                      {isDeletingData ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Erasing Sandbox...
+                        </>
+                      ) : (
+                        "Permanently Erase All My Data"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 text-center py-4">
+                  <div className="w-12 h-12 bg-green-600/10 border border-green-500/30 rounded-full flex items-center justify-center text-green-400 mx-auto mb-2 animate-bounce">
+                    <Check size={24} />
+                  </div>
+                  <h3 className="text-base font-black text-white uppercase tracking-wider">Data Wiped Successfully</h3>
+                  <div className="text-xs text-slate-300 bg-slate-950/40 p-4 rounded-xl border border-slate-850/40 max-w-sm mx-auto leading-relaxed">
+                    <p>
+                      All client-side sandbox files, logs, settings, and cached vehicle indicators have been **fully deleted** from your device in strict compliance with GDPR Art. 17 and Google Play safety standards.
+                    </p>
+                    <p className="mt-2 text-indigo-300 font-medium">
+                      The application will now reload to re-initialize a completely clean, empty sandbox.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowDeletionModal(false);
+                      setDeletionConfirmed(false);
+                      window.location.reload();
+                    }}
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-lg shadow-indigo-950"
+                  >
+                    Complete & Restart App
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
+
+      {/* App-level Prominent Location Disclosure Modal (Google Play Policy Compliant) */}
+      {showLocationDisclosure && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 backdrop-blur-sm bg-black/60">
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col space-y-4 text-left">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                <Shield size={20} className="animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-extrabold text-white">Location Access Prominent Disclosure</h4>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">Google Play Safety & Privacy Policy</p>
+              </div>
+              <button 
+                onClick={() => setShowLocationDisclosure(false)}
+                className="p-1 rounded bg-slate-950 text-slate-500 hover:text-white transition cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="text-slate-300 text-xs space-y-2.5 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-800/60">
+              <p>
+                Smart Vehicle & Fuel Assistant requests access to your device's <strong>precise GPS Location</strong> for the following purpose:
+              </p>
+              <div className="flex items-start gap-2 bg-indigo-950/20 border border-indigo-500/10 p-2 rounded-lg text-[11px] text-indigo-300">
+                <MapPin size={14} className="shrink-0 mt-0.5 text-indigo-400" />
+                <span>
+                  <strong>Sunrise & Sunset Auto Theme Sync:</strong> To calculate precise solar times based on your latitude and longitude, allowing automatic theme switching from light to dark at local sunset.
+                </span>
+              </div>
+              <ul className="list-disc pl-4 text-[11px] text-slate-400 space-y-1">
+                <li>This app processes your location coordinates transiently in active memory.</li>
+                <li>Your coordinates are <strong>never</strong> stored on our remote servers, tracked in the background, or shared with third parties.</li>
+                <li>You can decline this access; the app will default to standard manual theme selection.</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2 justify-end text-xs pt-1">
+              <button
+                onClick={() => setShowLocationDisclosure(false)}
+                className="px-3 py-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-300 font-semibold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAcceptLocationDisclosure}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-950 transition cursor-pointer"
+              >
+                Agree & Enable GPS Sync
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

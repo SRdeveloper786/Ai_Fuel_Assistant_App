@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { FuelEntry, Vehicle } from "../types";
+import { FuelEntry, Vehicle, LogCategory } from "../types";
 import { Calendar, Gauge, Beaker, DollarSign, Plus, Trash2, HelpCircle, FileText } from "lucide-react";
+import { triggerHaptic } from "../lib/haptics";
 
 interface FuelLogsManagerProps {
   activeVehicle: Vehicle | null;
@@ -19,6 +20,7 @@ export default function FuelLogsManager({
 }: FuelLogsManagerProps) {
   const [showForm, setShowForm] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [category, setCategory] = useState<LogCategory>("Fuel");
   const [odometer, setOdometer] = useState("");
   const [fuelFilled, setFuelFilled] = useState("");
   const [pricePerUnit, setPricePerUnit] = useState("");
@@ -27,6 +29,11 @@ export default function FuelLogsManager({
   const [error, setError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [ocrSuccessMessage, setOcrSuccessMessage] = useState<string | null>(null);
+
+  // Filters
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterCategory, setFilterCategory] = useState<LogCategory | "All">("All");
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,7 +62,10 @@ export default function FuelLogsManager({
           if (json.success && json.data) {
             const parsed = json.data;
             if (parsed.date) setDate(parsed.date);
-            if (parsed.fuelFilled) setFuelFilled(parsed.fuelFilled.toString());
+            if (parsed.fuelFilled) {
+              setFuelFilled(parsed.fuelFilled.toString());
+              setCategory("Fuel");
+            }
             if (parsed.pricePerUnit) setPricePerUnit(parsed.pricePerUnit.toString());
             if (parsed.totalCost) {
               setTotalCost(parsed.totalCost.toString());
@@ -90,7 +100,19 @@ export default function FuelLogsManager({
   // Filter logs for the active vehicle
   const activeVehicleLogs = logs
     .filter((log) => log.vehicleId === activeVehicle?.id)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Apply filters
+  const filteredLogs = activeVehicleLogs.filter((log) => {
+    let matchesDate = true;
+    if (filterStartDate) matchesDate = matchesDate && new Date(log.date) >= new Date(filterStartDate);
+    if (filterEndDate) matchesDate = matchesDate && new Date(log.date) <= new Date(filterEndDate);
+    
+    let matchesCategory = true;
+    if (filterCategory !== "All") matchesCategory = matchesCategory && log.category === filterCategory;
+
+    return matchesDate && matchesCategory;
+  });
 
   // Handle live calculation of total cost
   const handleFuelFilledChange = (val: string) => {
@@ -119,30 +141,39 @@ export default function FuelLogsManager({
     const odoNum = parseFloat(odometer);
     const fuelNum = parseFloat(fuelFilled);
     const priceNum = parseFloat(pricePerUnit);
-    const costNum = parseFloat(totalCost) || fuelNum * priceNum;
+    
+    // For fuel, totalCost is required. For others, it's cost.
+    const costNum = parseFloat(totalCost) || (category === 'Fuel' ? fuelNum * priceNum : 0);
 
     if (isNaN(odoNum) || odoNum <= 0) {
       setError("Please enter a valid odometer reading.");
       return;
     }
 
-    if (isNaN(fuelNum) || fuelNum <= 0) {
-      setError("Please enter a valid amount of fuel filled.");
-      return;
+    if (category === 'Fuel') {
+      if (isNaN(fuelNum) || fuelNum <= 0) {
+        setError("Please enter a valid amount of fuel filled.");
+        return;
+      }
     }
 
     // Odometer validation against last entry
-    const lastEntry = activeVehicleLogs[activeVehicleLogs.length - 1];
-    if (lastEntry && odoNum <= lastEntry.odometer) {
-      setError(`New odometer reading must be higher than the previous entry of ${lastEntry.odometer} ${activeVehicle.odometerUnit}.`);
+    const lastEntry = activeVehicleLogs[0]; // ActiveVehicleLogs is now sorted descending (newest first)
+    // Actually, I need to check against the last entry based on date.
+    // Assuming chronological order for validation
+    const chronologicallySortedLogs = [...activeVehicleLogs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const lastEntryChrono = chronologicallySortedLogs[chronologicallySortedLogs.length - 1];
+    
+    if (lastEntryChrono && odoNum <= lastEntryChrono.odometer) {
+      setError(`New odometer reading must be higher than the previous entry of ${lastEntryChrono.odometer} ${activeVehicle.odometerUnit}.`);
       return;
     }
 
     // Dynamic efficiency calculation (real average!)
     // Formula: (Current Odometer - Last Odometer) / Fuel Filled this time
     let calculatedEfficiency: number | undefined = undefined;
-    if (lastEntry) {
-      const odoDifference = odoNum - lastEntry.odometer;
+    if (category === 'Fuel' && lastEntryChrono) {
+      const odoDifference = odoNum - lastEntryChrono.odometer;
       calculatedEfficiency = parseFloat((odoDifference / fuelNum).toFixed(2));
     }
 
@@ -151,8 +182,9 @@ export default function FuelLogsManager({
       vehicleId: activeVehicle.id,
       date,
       odometer: odoNum,
-      fuelFilled: fuelNum,
-      pricePerUnit: priceNum,
+      category,
+      fuelFilled: category === 'Fuel' ? fuelNum : undefined,
+      pricePerUnit: category === 'Fuel' ? priceNum : undefined,
       totalCost: costNum,
       efficiency: calculatedEfficiency,
       notes: notes.trim(),
@@ -189,6 +221,7 @@ export default function FuelLogsManager({
         {!showForm && (
           <button
             onClick={() => {
+              triggerHaptic('light');
               setError(null);
               setShowForm(true);
             }}
@@ -202,7 +235,7 @@ export default function FuelLogsManager({
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-slate-950/60 border border-white/[0.06] rounded-xl p-4 mb-4 space-y-3 transition">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">New Fuel Entry</h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">New {category} Entry</h3>
             {activeVehicleLogs.length === 0 && (
               <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded px-1.5 py-0.5 font-mono">
                 First Log: Base Odometer
@@ -216,40 +249,42 @@ export default function FuelLogsManager({
             </div>
           )}
 
-          {/* OCR Upload Zone */}
-          <div className="border border-dashed border-white/[0.08] rounded-xl p-3 bg-slate-900/40 text-center space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText size={12} className="text-indigo-400" /> Smart Receipt OCR Scanner
-              </span>
-              <span className="text-[9px] text-slate-500 font-medium">Quick Auto-fill</span>
+          {/* OCR Upload Zone - only for Fuel */}
+          {category === 'Fuel' && (
+            <div className="border border-dashed border-white/[0.08] rounded-xl p-3 bg-slate-900/40 text-center space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText size={12} className="text-indigo-400" /> Smart Receipt OCR Scanner
+                </span>
+                <span className="text-[9px] text-slate-500 font-medium">Quick Auto-fill</span>
+              </div>
+              
+              {isScanning ? (
+                <div className="py-4 flex flex-col items-center justify-center space-y-2">
+                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-[11px] text-slate-400 font-medium animate-pulse">Gemini AI analyzing receipt details...</p>
+                </div>
+              ) : (
+                <label className="block cursor-pointer py-3 hover:bg-slate-900/80 rounded-lg transition border border-transparent hover:border-white/[0.08]">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleReceiptUpload}
+                    className="hidden"
+                  />
+                  <Plus size={16} className="mx-auto text-slate-500 mb-1" />
+                  <p className="text-[11px] font-semibold text-slate-300">Upload Fuel Receipt Image</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Drag & drop or click to parse & pre-fill fields instantly</p>
+                </label>
+              )}
+              
+              {ocrSuccessMessage && (
+                <div className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 font-semibold">
+                  {ocrSuccessMessage}
+                </div>
+              )}
             </div>
-            
-            {isScanning ? (
-              <div className="py-4 flex flex-col items-center justify-center space-y-2">
-                <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-[11px] text-slate-400 font-medium animate-pulse">Gemini AI analyzing receipt details...</p>
-              </div>
-            ) : (
-              <label className="block cursor-pointer py-3 hover:bg-slate-900/80 rounded-lg transition border border-transparent hover:border-white/[0.08]">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleReceiptUpload}
-                  className="hidden"
-                />
-                <Plus size={16} className="mx-auto text-slate-500 mb-1" />
-                <p className="text-[11px] font-semibold text-slate-300">Upload Fuel Receipt Image</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">Drag & drop or click to parse & pre-fill fields instantly</p>
-              </label>
-            )}
-            
-            {ocrSuccessMessage && (
-              <div className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 font-semibold">
-                {ocrSuccessMessage}
-              </div>
-            )}
-          </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -261,6 +296,19 @@ export default function FuelLogsManager({
                 required
                 className="w-full text-xs px-2 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 cursor-pointer"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as LogCategory)}
+                className="w-full text-xs px-2 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 cursor-pointer"
+              >
+                <option value="Fuel">Fuel</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Repair">Repair</option>
+              </select>
             </div>
 
             <div>
@@ -281,41 +329,45 @@ export default function FuelLogsManager({
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Fuel Filled (Liters)</label>
-              <input
-                type="number"
-                step="any"
-                placeholder="Liters filled, e.g. 45"
-                value={fuelFilled}
-                onChange={(e) => handleFuelFilledChange(e.target.value)}
-                required
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
-              />
-            </div>
+            {category === 'Fuel' && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Fuel Filled (Liters)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="Liters filled, e.g. 45"
+                    value={fuelFilled}
+                    onChange={(e) => handleFuelFilledChange(e.target.value)}
+                    required
+                    className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Price Per Liter</label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 268 or 3.2"
+                    value={pricePerUnit}
+                    onChange={(e) => handlePriceChange(e.target.value)}
+                    required
+                    className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
+                  />
+                </div>
+              </>
+            )}
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Price Per Liter</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Total Cost ({currency})</label>
               <input
                 type="number"
                 step="any"
-                placeholder="e.g. 268 or 3.2"
-                value={pricePerUnit}
-                onChange={(e) => handlePriceChange(e.target.value)}
-                required
-                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Total Cost</label>
-              <input
-                type="number"
-                step="any"
-                placeholder="Calculated automatically"
+                placeholder={category === 'Fuel' ? "Calculated automatically" : "Enter cost"}
                 value={totalCost}
                 onChange={(e) => setTotalCost(e.target.value)}
-                className="w-full text-xs px-3 py-2 bg-slate-900/50 border border-white/[0.08] rounded-lg text-indigo-300 font-mono"
+                className="w-full text-xs px-3 py-2 bg-slate-900 border border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-slate-100 placeholder-slate-600"
               />
             </div>
 
@@ -341,13 +393,49 @@ export default function FuelLogsManager({
             </button>
             <button
               type="submit"
+              onClick={() => triggerHaptic('heavy')}
               className="text-xs font-semibold px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition cursor-pointer"
             >
-              Log Entry
+              Log {category}
             </button>
           </div>
         </form>
       )}
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 p-3 bg-slate-950/40 rounded-xl border border-white/[0.04]">
+        <div>
+          <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Start Date</label>
+          <input
+            type="date"
+            value={filterStartDate}
+            onChange={(e) => setFilterStartDate(e.target.value)}
+            className="w-full text-xs px-2 py-1.5 bg-slate-900 border border-white/[0.08] rounded-lg text-slate-100 cursor-pointer"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">End Date</label>
+          <input
+            type="date"
+            value={filterEndDate}
+            onChange={(e) => setFilterEndDate(e.target.value)}
+            className="w-full text-xs px-2 py-1.5 bg-slate-900 border border-white/[0.08] rounded-lg text-slate-100 cursor-pointer"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Category</label>
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value as LogCategory | "All")}
+            className="w-full text-xs px-2 py-1.5 bg-slate-900 border border-white/[0.08] rounded-lg text-slate-100 cursor-pointer"
+          >
+            <option value="All">All</option>
+            <option value="Fuel">Fuel</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Repair">Repair</option>
+          </select>
+        </div>
+      </div>
 
       {/* Explainer tooltip info */}
       {activeVehicleLogs.length === 1 && (
@@ -359,7 +447,7 @@ export default function FuelLogsManager({
         </div>
       )}
 
-      {activeVehicleLogs.length === 0 ? (
+      {filteredLogs.length === 0 ? (
         <div className="bg-slate-950 border border-dashed border-white/[0.08] rounded-xl p-8 text-center space-y-2">
           <Calendar size={20} className="text-slate-500 mx-auto" />
           <p className="text-xs text-slate-300 font-medium">No fuel records logged yet.</p>
@@ -381,17 +469,20 @@ export default function FuelLogsManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {[...activeVehicleLogs].reverse().map((log) => (
+              {[...filteredLogs].map((log) => (
                 <tr key={log.id} className="hover:bg-white/[0.02] transition">
                   <td className="py-3 font-medium text-slate-200">
                     <div>{log.date}</div>
                     {log.notes && <div className="text-[10px] text-slate-500 font-normal">{log.notes}</div>}
+                    <div className="text-[10px] text-indigo-400 font-medium">{log.category}</div>
                   </td>
                   <td className="py-3 text-right text-slate-400 font-mono">
                     {log.odometer} <span className="text-[10px]">{activeVehicle.odometerUnit}</span>
                   </td>
                   <td className="py-3 text-right text-slate-400 font-mono">
-                    {log.fuelFilled} <span className="text-[10px]">L</span>
+                    {log.fuelFilled ? (
+                      <>{log.fuelFilled} <span className="text-[10px]">L</span></>
+                    ) : "-"}
                   </td>
                   <td className="py-3 text-right text-slate-200 font-bold">
                     {log.totalCost.toFixed(1)} <span className="text-[10px] text-slate-500">{currency}</span>
@@ -402,7 +493,7 @@ export default function FuelLogsManager({
                         {log.efficiency} {activeVehicle.odometerUnit === "Km" ? "Km/L" : "MPG"}
                       </span>
                     ) : (
-                      <span className="text-slate-600 text-[10px] font-normal italic">Pending...</span>
+                      <span className="text-slate-600 text-[10px] font-normal italic">N/A</span>
                     )}
                   </td>
                   <td className="py-3 text-right pl-2">
