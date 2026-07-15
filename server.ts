@@ -352,46 +352,69 @@ Explain calculations clearly: (Ending Odometer - Starting Odometer) / Liters. Ke
       parts: [{ text: message }],
     });
 
-    // Call Gemini API
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.5,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            reply: { 
-              type: Type.STRING, 
-              description: "The direct text response to show the user, in the requested script/language ONLY." 
+    // Call Gemini API with retry logic
+    let response;
+    let retries = 3;
+    let delay = 1000;
+
+    while (retries > 0) {
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: contents,
+          config: {
+            systemInstruction: systemInstruction,
+            temperature: 0.5,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                reply: { 
+                  type: Type.STRING, 
+                  description: "The direct text response to show the user, in the requested script/language ONLY." 
+                },
+                speechText: { 
+                  type: Type.STRING, 
+                  description: "An optimized phonetic version for speech synthesis. For Urdu, Roman Urdu, or Hindi, this MUST be in Devanagari/Hindi script." 
+                }
+              },
+              required: ["reply", "speechText"]
             },
-            speechText: { 
-              type: Type.STRING, 
-              description: "An optimized phonetic version for speech synthesis. For Urdu, Roman Urdu, or Hindi, this MUST be in Devanagari/Hindi script." 
+            thinkingConfig: {
+              thinkingLevel: ThinkingLevel.MINIMAL
             }
           },
-          required: ["reply", "speechText"]
-        },
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.MINIMAL
-        }
-      },
-    });
+        });
+        break; // Success
+      } catch (err: any) {
+        retries--;
+        console.warn(`Gemini API call failed (retries left: ${retries}):`, err.message);
+        if (retries === 0 || err.status !== 503) throw err;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2;
+      }
+    }
 
-    const responseText = response.text || "{}";
-    let replyText = "I couldn't generate a response. Please try again.";
+    const responseText = response?.text || "{}";
+    let replyText = "";
     let speechText = "";
 
     try {
       const parsed = JSON.parse(responseText);
-      replyText = parsed.reply || replyText;
+      replyText = parsed.reply;
       speechText = parsed.speechText || replyText;
     } catch (e) {
       console.warn("Failed to parse JSON response from Gemini:", responseText);
-      replyText = responseText;
-      speechText = responseText;
+      // Fallback if parsing fails
+      const fallback = generateLocalFallbackResponse(message, resolvedLang, vehicleProfile);
+      replyText = fallback.reply;
+      speechText = fallback.speechText;
+    }
+    
+    if (!replyText) {
+       const fallback = generateLocalFallbackResponse(message, resolvedLang, vehicleProfile);
+       replyText = fallback.reply;
+       speechText = fallback.speechText;
     }
 
     res.json({
