@@ -18,7 +18,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ onClose }) => {
             <h3 className="font-bold text-white mb-1">Privacy Policy</h3>
             <p>Your privacy is paramount. This application operates on a <strong>Local-First Architecture</strong>. All your vehicle data, fuel logs, and preferences are stored exclusively on your device in your local browser sandbox.</p>
             <p><strong>We do not:</strong> collect, store, share, or sell your personal data, location, or usage habits on any external servers.</p>
-            <p><strong>Permissions:</strong> Location is requested only for solar-time theme sync and is processed locally. Microphone is used for voice commands locally.</p>
+            <p><strong>Permissions:</strong> Location is requested only for solar-time theme sync and is processed locally. Microphone is used for voice commands locally. Access to your device's photo gallery is requested strictly to parse fuel receipt images for automatic field entry via local OCR processing.</p>
           </section>
 
           <section>

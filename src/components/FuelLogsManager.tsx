@@ -224,6 +224,11 @@ export default function FuelLogsManager({
               triggerHaptic('light');
               setError(null);
               setShowForm(true);
+              setDate(new Date().toISOString().split("T")[0]);
+              const lastLog = activeVehicleLogs[0];
+              if (lastLog && lastLog.pricePerUnit) {
+                setPricePerUnit(lastLog.pricePerUnit.toString());
+              }
             }}
             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-lg shadow-indigo-600/10 cursor-pointer"
           >
