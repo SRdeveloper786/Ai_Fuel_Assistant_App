@@ -9,6 +9,7 @@ import { SmartFeatures } from "./components/SmartFeatures";
 import CheapFuelFinder from "./components/CheapFuelFinder";
 import { Car, Settings, BarChart3, MessageSquare, Flame, HelpCircle, FileText, Trash2, Smartphone, MapPin, Wrench, ShieldAlert, Bluetooth, Calculator, AlertTriangle, ShieldCheck, PlayCircle, Sparkles, Download, Upload, Wifi, WifiOff, Database, ChevronLeft, ChevronRight, Sun, Moon, Sunset, MoreVertical, Menu, Share2, Info, Shield, Check, Copy, ExternalLink, Scale, X, TrendingUp, TrendingDown, Lightbulb, Award, Activity } from "lucide-react";
 import { triggerHaptic } from "./lib/haptics";
+import { LegalModal } from "./components/LegalModal";
 import { motion, AnimatePresence } from "motion/react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, AreaChart, Area } from "recharts";
 
@@ -49,6 +50,7 @@ export default function App() {
     return localStorage.getItem("assistant_auto_theme") === "true";
   });
 
+  const [showLegalModal, setShowLegalModal] = useState<boolean>(false);
   const [showLocationDisclosure, setShowLocationDisclosure] = useState<boolean>(false);
 
   const handleAcceptLocationDisclosure = () => {
@@ -2793,6 +2795,14 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Privacy and Terms Link */}
+      <div className="fixed bottom-4 right-4 z-[100] text-[10px] text-slate-600 bg-slate-950/50 p-2 rounded-lg backdrop-blur">
+        <button onClick={() => setShowLegalModal(true)} className="hover:text-indigo-400 transition cursor-pointer">
+          Privacy Policy & Terms
+        </button>
+      </div>
+      {showLegalModal && <LegalModal onClose={() => setShowLegalModal(false)} />}
     </div>
   );
 }
